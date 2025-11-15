@@ -230,7 +230,7 @@
                 </div>
             </section>
 
-            <!-- 4️⃣ 結果畫面 (Result Screen) -->
+            <!-- 4️⃣ 結果畫面 (Result Screen) - 增加提交按鈕 -->
             <section id="result-screen" class="card hidden text-center">
                 <h2 class="text-4xl font-extrabold mb-4 text-emerald-600">測驗結果出爐！</h2>
                 <div class="p-6 bg-emerald-50 rounded-lg inline-block">
@@ -244,8 +244,13 @@
                     <p id="result-message" class="text-lg text-gray-600 font-medium"></p>
                 </div>
 
-                <button id="restart-quiz-btn" class="main-button mt-8">
-                    <i data-lucide="rotate-ccw" class="w-5 h-5 mr-2 inline-block"></i>
+                <!-- ⭐ 新增提交成績按鈕 -->
+                <button id="submit-score-btn" class="main-button mt-8 w-full">
+                    <i data-lucide="send" class="w-5 h-5 mr-2 inline-block"></i>
+                    提交成績至排行榜
+                </button>
+                <button id="restart-quiz-btn" class="mt-4 px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors">
+                    <i data-lucide="rotate-ccw" class="w-4 h-4 mr-1 inline-block"></i>
                     重新開始測驗
                 </button>
             </section>
@@ -270,7 +275,6 @@
 
     <script>
         // --- 數據定義 ---
-        // 礦石/岩石數據，包含所有特徵和詳情 (用於圖鑑和測驗)
         const MINERALS = [
             // 礦石 (Minerals)
             { id: 'quartz', name: '石英', engName: 'Quartz', type: '礦物', color: ['白色', '灰色', '透明'], features: ['礦物', '白色', '灰色', '透明', '可刮玻璃', '玻璃光澤', '有結晶'], habitat: '常見於花崗岩中，是地殼中含量第二多的礦物。', usage: '電子元件、玻璃原料、寶石', imageUrl: 'images/Quartz.png' },
@@ -299,23 +303,21 @@
         const KEYWORDS = {
             '顏色': ['白色', '黑色', '灰色', '黃色', '透明', '銀白色', '粉紅', '深棕色', '淺綠色', '褐色', '紅色', '米黃', '雜色'],
             '特徵': [
-                '有結晶', '有層狀構造', '遇酸起泡', '可刮玻璃', // 常用特徵
-                '金屬光澤', '玻璃光澤', '珍珠光澤', '蠟狀光澤', // 光澤
-                '片狀剝落', '可導電', '皂感', '有條痕', // 礦物特性
-                '火成岩', '沉積岩', '變質岩', '礦物', // 類型
-                '蜂窩狀', '帶狀構造', '顆粒細', '顆粒粗', '由生物遺骸組成', '砂粒組合', '火山產物', '可劈裂', '深層形成', '菱形解理', '台灣常見' // 結構與顆粒 (已移除 '塊狀' 和 '緊密塊狀')
+                '有結晶', '有層狀構造', '遇酸起泡', '可刮玻璃',
+                '金屬光澤', '玻璃光澤', '珍珠光澤', '蠟狀光澤',
+                '片狀剝落', '可導電', '皂感', '有條痕',
+                '火成岩', '沉積岩', '變質岩', '礦物',
+                '蜂窩狀', '帶狀構造', '顆粒細', '顆粒粗', '由生物遺骸組成', '砂粒組合', '火山產物', '可劈裂', '深層形成', '菱形解理', '台灣常見'
             ]
         };
 
-        // 測驗邏輯所需的所有特徵和用途集合 (已更新以包含 usage)
+        // 測驗邏輯所需的所有特徵和用途集合
         const allQuizOptionsSet = new Set();
         MINERALS.forEach(m => {
-            // 加入 features
             m.features.forEach(f => allQuizOptionsSet.add(f));
-            // 加入 usage，並將多個用途拆開
             m.usage.split('、').forEach(u => allQuizOptionsSet.add(u.trim()));
         });
-        const allQuizOptions = Array.from(allQuizOptionsSet); // 所有的特徵和用途
+        const allQuizOptions = Array.from(allQuizOptionsSet);
         const NUM_QUESTIONS = 10;
         
         // 應用程式狀態變數
@@ -364,6 +366,7 @@
         const $finalScore = document.getElementById('final-score');
         const $resultMessage = document.getElementById('result-message');
         const $restartBtn = document.getElementById('restart-quiz-btn');
+        const $submitScoreBtn = document.getElementById('submit-score-btn'); // ⭐ 新增
 
         // --- 輔助函數 ---
 
@@ -377,10 +380,11 @@
 
         /** 自定義 alert 函式 (使用 window.alert 替代) */
         function alert(message) {
+            // 在這裡使用簡單的 window.alert 替代，如果需要在 iframe 環境下使用，請考慮自定義 Modal UI
             window.alert(message);
         }
 
-        // --- 模式切換邏輯 ---
+        // --- 模式切換邏輯 (不變) ---
 
         /** 切換主應用程式模式 */
         function showAppMode(mode) {
@@ -388,31 +392,35 @@
             $galleryMode.classList.add('hidden');
             $quizMode.classList.add('hidden');
 
-            $modeGalleryBtn.classList.remove('bg-emerald-500', 'text-white', 'border-emerald-500');
-            $modeQuizBtn.classList.remove('bg-emerald-500', 'text-white', 'border-emerald-500');
+            $modeGalleryBtn.classList.remove('bg-emerald-500', 'text-white', 'border-emerald-500', 'bg-white', 'text-gray-700', 'border-gray-300');
+            $modeQuizBtn.classList.remove('bg-emerald-500', 'text-white', 'border-emerald-500', 'bg-white', 'text-gray-700', 'border-gray-300');
+            
+            $modeGalleryBtn.classList.add('bg-white', 'text-gray-700', 'border-gray-300');
+            $modeQuizBtn.classList.add('bg-white', 'text-gray-700', 'border-gray-300');
 
             if (mode === 'gallery') {
                 $galleryMode.classList.remove('hidden');
                 $modeGalleryBtn.classList.add('bg-emerald-500', 'text-white', 'border-emerald-500');
-                $modeQuizBtn.classList.add('bg-white', 'text-gray-700', 'border-gray-300');
+                $modeQuizBtn.classList.remove('rounded-r-lg');
+                $modeQuizBtn.classList.add('border-l-0');
                 $headerTitle.textContent = '台灣岩石與礦物小幫手';
                 $headerSubtitle.textContent = '透過關鍵字篩選，找出你正在尋找的岩石或礦物！';
                 $headerIcon.setAttribute('data-lucide', 'gem');
-                filterGallery(); // 確保圖鑑在切換回時正確渲染
+                filterGallery();
             } else if (mode === 'quiz') {
                 $quizMode.classList.remove('hidden');
                 $modeQuizBtn.classList.add('bg-emerald-500', 'text-white', 'border-emerald-500');
-                $modeGalleryBtn.classList.add('bg-white', 'text-gray-700', 'border-gray-300');
+                $modeGalleryBtn.classList.remove('rounded-l-lg');
+                $modeGalleryBtn.classList.add('border-r-0');
                 $headerTitle.textContent = '岩石與礦物特徵測驗';
-                // 標題更新以反映包含用途
                 $headerSubtitle.textContent = '測試你對台灣常見岩石與礦物「特徵與用途」的認識！';
                 $headerIcon.setAttribute('data-lucide', 'scroll-text');
-                showQuizScreen('start-screen'); // 確保測驗模式從開始畫面啟動
+                showQuizScreen('start-screen');
             }
             lucide.createIcons(); // 重新渲染 icon
         }
 
-        // --- 圖鑑模式 (Gallery Mode) 邏輯 ---
+        // --- 圖鑑模式 (Gallery Mode) 邏輯 (不變) ---
 
         /** 渲染關鍵字按鈕 */
         function renderKeywords() {
@@ -506,7 +514,7 @@
             const mineral = MINERALS.find(m => m.id === id);
             if (!mineral) return;
 
-            // 渲染 Modal 內容
+            // 渲染 Modal 內容 (不變)
             $modalContent.innerHTML = `
                 <button id="close-modal-btn" class="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-100 text-gray-500">
                     <i data-lucide="x" class="w-5 h-5"></i>
@@ -524,7 +532,6 @@
                 <div class="mt-6 space-y-3">
                     <h3 class="text-xl font-bold text-gray-700 border-b pb-2">🔬 主要特徵</h3>
                     <p class="text-gray-700"><span class="font-semibold text-emerald-600">顏色:</span> ${mineral.color.join(', ')}</p>
-                    <!-- 從 features 陣列中移除 color 和 type 相關的關鍵字以顯示淨特徵 -->
                     <p class="text-gray-700"><span class="font-semibold text-emerald-600">特徵:</span> ${mineral.features.filter(f => !mineral.color.includes(f) && f !== mineral.type).join('、')}</p>
                 </div>
 
@@ -553,32 +560,26 @@
             document.getElementById(screenId).classList.remove('hidden');
         }
 
-        /** 產生測驗題目 (特徵或用途選項) */
+        /** 產生測驗題目 (不變) */
         function generateQuizQuestions() {
             const shuffledMinerals = [...MINERALS];
             shuffleArray(shuffledMinerals);
             const selectedMinerals = shuffledMinerals.slice(0, NUM_QUESTIONS);
 
             const questions = selectedMinerals.map(mineral => {
-                // 組合所有可能的正確選項：features + usage (將 usage 拆開)
                 const correctOptions = [
                     ...mineral.features, 
                     ...mineral.usage.split('、').map(u => u.trim()).filter(u => u.length > 0)
                 ];
                 
-                // 隨機選擇一個作為正確答案
                 const correctAnswer = correctOptions[Math.floor(Math.random() * correctOptions.length)];
                 
-                // 選擇干擾項 (Distractors)
-                // 從所有選項中過濾掉所有正確選項，留下不正確的
                 const wrongOptions = allQuizOptions.filter(option => !correctOptions.includes(option));
                 
                 shuffleArray(wrongOptions);
                 let distractors = wrongOptions.slice(0, 3);
 
-                // 確保選項數量為 4
                 while (distractors.length < 3) {
-                    // 如果不夠，隨機添加一個不常見的選項或通用的「其他特徵」
                     const filler = wrongOptions[Math.floor(Math.random() * wrongOptions.length)] || '其他特徵';
                     if (!distractors.includes(filler)) {
                         distractors.push(filler);
@@ -587,7 +588,7 @@
                     }
                 }
                 
-                const options = [correctAnswer, ...distractors.slice(0, 3)]; // 確保只有 4 個選項
+                const options = [correctAnswer, ...distractors.slice(0, 3)];
                 shuffleArray(options);
 
                 return {
@@ -600,7 +601,7 @@
             return questions;
         }
 
-        /** 開始測驗 */
+        /** 開始測驗 (不變) */
         function startGame() {
             const name = $nameInput.value.trim();
             if (name.length < 1) {
@@ -620,7 +621,7 @@
             lucide.createIcons();
         }
 
-        /** 渲染當前題目 */
+        /** 渲染當前題目 (不變) */
         function renderQuestion() {
             const question = quizQuestions[currentQuestionIndex];
             const qNum = currentQuestionIndex + 1;
@@ -647,7 +648,7 @@
             }
         }
 
-        /** 選擇答案 */
+        /** 選擇答案 (不變) */
         function selectAnswer(selection, update = true) {
             const question = quizQuestions[currentQuestionIndex];
 
@@ -666,7 +667,7 @@
             }
         }
 
-        /** 前進到下一題或送出測驗 */
+        /** 前進到下一題或送出測驗 (不變) */
         function nextQuestion() {
             const question = quizQuestions[currentQuestionIndex];
             if (!question.userSelection) return;
@@ -681,7 +682,7 @@
             }
         }
 
-        /** 計算分數並顯示結果 */
+        /** 計算分數並顯示結果畫面 (新邏輯) */
         function submitQuiz() {
             score = 0;
             quizQuestions.forEach(q => {
@@ -708,6 +709,36 @@
             showQuizScreen('result-screen');
         }
 
+        // ⭐ 新增：將成績儲存並導向排行榜頁面
+        /** 從 localStorage 獲取成績列表 */
+        function getScores() {
+            const scoresJson = localStorage.getItem('quiz_leaderboard');
+            return scoresJson ? JSON.parse(scoresJson) : [];
+        }
+
+        /** 將新成績加入列表並儲存到 localStorage */
+        function addScore(name, score) {
+            const scores = getScores();
+            const newEntry = { 
+                id: Date.now(), // 唯一 ID
+                name: name, 
+                score: score, 
+                date: new Date().toLocaleDateString('zh-TW') 
+            };
+            scores.push(newEntry);
+            localStorage.setItem('quiz_leaderboard', JSON.stringify(scores));
+        }
+
+        /** 提交成績並導向排行榜 */
+        function submitScoreAndRedirect() {
+            // 1. 儲存本次成績
+            addScore(studentName, score);
+
+            // 2. 導向排行榜頁面，並在 URL 中傳遞本次成績的資訊
+            const redirectUrl = `./leaderboard.html?latestName=${encodeURIComponent(studentName)}&latestScore=${score}`;
+            window.location.href = redirectUrl;
+        }
+
 
         // --- 初始化與事件監聽器 ---
 
@@ -718,7 +749,7 @@
                 year: 'numeric', month: 'long', day: 'numeric', weekday: 'short'
             });
 
-            // 圖鑑模式事件
+            // 圖鑑模式事件 (不變)
             renderKeywords();
             filterGallery();
             $clearBtn.addEventListener('click', () => {
@@ -735,6 +766,8 @@
             // 測驗模式事件
             $startBtn.addEventListener('click', startGame);
             $nextBtn.addEventListener('click', nextQuestion);
+            // ⭐ 綁定新的提交按鈕事件
+            $submitScoreBtn.addEventListener('click', submitScoreAndRedirect);
             $restartBtn.addEventListener('click', () => {
                 $nameInput.value = studentName;
                 showQuizScreen('start-screen');
@@ -743,7 +776,7 @@
                 if (e.key === 'Enter') { startGame(); }
             });
             
-            // 模式切換事件
+            // 模式切換事件 (不變)
             $modeGalleryBtn.addEventListener('click', () => showAppMode('gallery'));
             $modeQuizBtn.addEventListener('click', () => showAppMode('quiz'));
 
@@ -754,4 +787,3 @@
 </body>
 
 </html>
-
