@@ -230,7 +230,7 @@
                 </div>
             </section>
 
-            <!-- 4️⃣ 結果畫面 (Result Screen) - 增加提交按鈕 -->
+            <!-- 4️⃣ 結果畫面 (Result Screen) -->
             <section id="result-screen" class="card hidden text-center">
                 <h2 class="text-4xl font-extrabold mb-4 text-emerald-600">測驗結果出爐！</h2>
                 <div class="p-6 bg-emerald-50 rounded-lg inline-block">
@@ -244,15 +244,16 @@
                     <p id="result-message" class="text-lg text-gray-600 font-medium"></p>
                 </div>
 
-                <!-- ⭐ 新增提交成績按鈕 -->
-                <button id="submit-score-btn" class="main-button mt-8 w-full">
-                    <i data-lucide="send" class="w-5 h-5 mr-2 inline-block"></i>
-                    提交成績至排行榜
-                </button>
-                <button id="restart-quiz-btn" class="mt-4 px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors">
-                    <i data-lucide="rotate-ccw" class="w-4 h-4 mr-1 inline-block"></i>
+                <!-- 重新開始按鈕設為主按鈕 -->
+                <button id="restart-quiz-btn" class="main-button mt-8 w-full">
+                    <i data-lucide="rotate-ccw" class="w-5 h-5 mr-2 inline-block"></i>
                     重新開始測驗
                 </button>
+                <!-- 新增查看排行榜連結 -->
+                <a href="leaderboard.html" class="mt-4 px-4 py-2 text-sm font-medium text-blue-500 hover:text-blue-700 transition-colors inline-flex items-center">
+                    <i data-lucide="trophy" class="w-4 h-4 mr-1 inline-block"></i>
+                    查看排行榜
+                </a>
             </section>
         </div>
         
@@ -292,7 +293,7 @@
 
             { id: 'limestone', name: '石灰岩', engName: 'Limestone', type: '沉積岩', color: ['灰色', '白色', '米黃'], features: ['沉積岩', '灰色', '白色', '米黃', '遇酸起泡', '有層狀構造', '由生物遺骸組成'], habitat: '主要由海洋生物遺骸形成，台灣西部有分佈。', usage: '水泥原料、建築', imageUrl: 'images/Limestone.png' },
             { id: 'shale', name: '頁岩', engName: 'Shale', type: '沉積岩', color: ['灰色', '黑色'], features: ['沉積岩', '灰色', '黑色', '有層狀構造', '顆粒細', '片狀剝落'], habitat: '台灣西部山區常見，由泥漿壓實而成。', usage: '製磚、水泥', imageUrl: 'images/Shale.png' },
-            { id: 'sandstone', name: '砂岩', engName: 'Sandstone', type: '沉積岩', color: ['黃色', '褐色', '紅色'], features: ['沉積岩', '黃色', '褐色', '紅色', '顆粒粗', '有層狀構造', '砂粒組合'], habitat: '台灣北部和西部山區常見。', usage: '建築石材、磨料', imageUrl: 'images/Sandstone.png' },
+            { id: 'sandstone', name: '砂岩', engName: 'Sandstone', type: '沉積岩', color: ['黃色', '褐色', '紅色'], features: ['沉積岩', '黃色', '褐色', '紅色', '顆粒粗', '有層狀構造', '砂粒組合'], habitat: '台灣北部和西部山區常見。', 'usage': '建築石材、磨料', imageUrl: 'images/Sandstone.png' },
 
             { id: 'marble', name: '大理岩', engName: 'Marble', type: '變質岩', color: ['白色', '灰色', '雜色'], features: ['變質岩', '白色', '灰色', '雜色', '有結晶', '遇酸起泡'], habitat: '台灣東部（花蓮）常見，由石灰岩變質而成。', usage: '高級裝飾材料、雕刻', imageUrl: 'images/Marble.png' },
             { id: 'slate', name: '板岩', engName: 'Slate', type: '變質岩', color: ['黑色', '灰色'], features: ['變質岩', '黑色', '灰色', '片狀剝落', '可劈裂', '有層狀構造'], habitat: '台灣中部山區常見，由頁岩或泥岩變質而成。', 'usage': '屋瓦、石板', imageUrl: 'images/Slate.png' },
@@ -366,7 +367,7 @@
         const $finalScore = document.getElementById('final-score');
         const $resultMessage = document.getElementById('result-message');
         const $restartBtn = document.getElementById('restart-quiz-btn');
-        const $submitScoreBtn = document.getElementById('submit-score-btn'); // ⭐ 新增
+        // const $submitScoreBtn = document.getElementById('submit-score-btn'); // ⭐ 已移除
 
         // --- 輔助函數 ---
 
@@ -682,7 +683,26 @@
             }
         }
 
-        /** 計算分數並顯示結果畫面 (新邏輯) */
+        /** 從 localStorage 獲取成績列表 */
+        function getScores() {
+            const scoresJson = localStorage.getItem('quiz_leaderboard');
+            return scoresJson ? JSON.parse(scoresJson) : [];
+        }
+
+        /** 將新成績加入列表並儲存到 localStorage */
+        function addScore(name, score) {
+            const scores = getScores();
+            const newEntry = { 
+                id: Date.now(), // 唯一 ID
+                name: name, 
+                score: score, 
+                date: new Date().toLocaleDateString('zh-TW') 
+            };
+            scores.push(newEntry);
+            localStorage.setItem('quiz_leaderboard', JSON.stringify(scores));
+        }
+
+        /** 計算分數並顯示結果畫面 (新邏輯：自動儲存成績) */
         function submitQuiz() {
             score = 0;
             quizQuestions.forEach(q => {
@@ -706,38 +726,13 @@
             }
             $resultMessage.textContent = message;
 
+            // ⭐ 自動儲存成績
+            addScore(studentName, score); 
+
             showQuizScreen('result-screen');
         }
 
-        // ⭐ 新增：將成績儲存並導向排行榜頁面
-        /** 從 localStorage 獲取成績列表 */
-        function getScores() {
-            const scoresJson = localStorage.getItem('quiz_leaderboard');
-            return scoresJson ? JSON.parse(scoresJson) : [];
-        }
-
-        /** 將新成績加入列表並儲存到 localStorage */
-        function addScore(name, score) {
-            const scores = getScores();
-            const newEntry = { 
-                id: Date.now(), // 唯一 ID
-                name: name, 
-                score: score, 
-                date: new Date().toLocaleDateString('zh-TW') 
-            };
-            scores.push(newEntry);
-            localStorage.setItem('quiz_leaderboard', JSON.stringify(scores));
-        }
-
-        /** 提交成績並導向排行榜 */
-        function submitScoreAndRedirect() {
-            // 1. 儲存本次成績
-            addScore(studentName, score);
-
-            // 2. 導向排行榜頁面，並在 URL 中傳遞本次成績的資訊
-            const redirectUrl = `./leaderboard.html?latestName=${encodeURIComponent(studentName)}&latestScore=${score}`;
-            window.location.href = redirectUrl;
-        }
+        // ⭐ 移除 submitScoreAndRedirect 函數
 
 
         // --- 初始化與事件監聽器 ---
@@ -766,8 +761,7 @@
             // 測驗模式事件
             $startBtn.addEventListener('click', startGame);
             $nextBtn.addEventListener('click', nextQuestion);
-            // ⭐ 綁定新的提交按鈕事件
-            $submitScoreBtn.addEventListener('click', submitScoreAndRedirect);
+            // ⭐ 已移除提交按鈕事件的綁定
             $restartBtn.addEventListener('click', () => {
                 $nameInput.value = studentName;
                 showQuizScreen('start-screen');
