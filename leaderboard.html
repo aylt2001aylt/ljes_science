@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>測驗成績排行榜</title>
+    <!-- 載入 Tailwind CSS --><script src="https://cdn.tailwindcss.com"></script>
+    <!-- 載入 Lucide Icons --><script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* 字型建議：Noto Sans TC / Inter */
+        html { font-family: 'Inter', 'Noto Sans TC', sans-serif; }
+
+        /* 自定義顏色變數 */
+        :root {
+            --color-bg-secondary: #ecfdf5; /* 淺綠 (Emerald-50) */
+            --color-main: #10b981; /* 主綠色 (Emerald-500) */
+        }
+
+        body {
+            background-color: var(--color-bg-secondary);
+            color: #1f2937;
+            padding-bottom: 4rem;
+        }
+
+        .card {
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            padding: 1.5rem;
+        }
+
+        .main-button {
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 700;
+            background-color: var(--color-main);
+            color: white;
+            box-shadow: 0 4px 6px rgba(16, 185, 129, 0.4);
+            transition: all 0.2s;
+        }
+
+        .main-button:hover {
+            background-color: #059669; /* Emerald-600 */
+            transform: translateY(-2px);
+            box-shadow: 0 6px 10px rgba(16, 185, 129, 0.5);
+        }
+
+        .keyword-btn {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all 200ms;
+            cursor: pointer;
+            border: 1px solid #e5e7eb;
+            background-color: #f9fafb;
+            color: #1f2937;
+        }
+        .keyword-btn.selected {
+            background-color: var(--color-main);
+            color: white;
+            border-color: var(--color-main);
+        }
+        
+        /* 排行榜分數條樣式 */
+        .score-bar {
+            background-color: var(--color-main);
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.5s ease-out;
+            min-width: 2%; /* 確保 0 分時也能看到一小條 */
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+
+    <!-- 1️⃣ 頂部區塊 -->
+    <header class="bg-white sticky top-0 z-10 shadow-md py-4 mb-8">
+        <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h1 class="text-3xl sm:text-4xl font-extrabold text-gray-800 flex items-center">
+                <i data-lucide="trophy" class="inline-block w-8 h-8 mr-2 text-yellow-500"></i>
+                測驗成績排行榜
+            </h1>
+            <p class="mt-2 text-base sm:text-lg text-gray-600 border-b pb-3 border-gray-100">
+                地質小專家挑戰成果，可以點擊按鈕來切換排序。
+            </p>
+        </div>
+    </header>
+
+    <main class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        <section class="card space-y-6">
+            
+            <!-- 排序選擇 -->
+            <div class="flex items-center space-x-4 border-b pb-4 border-gray-100">
+                <span class="font-semibold text-gray-700">排序方式:</span>
+                <button id="sort-score-btn" class="keyword-btn selected">
+                    <i data-lucide="star" class="w-4 h-4 mr-1"></i>
+                    依分數高低
+                </button>
+                <button id="sort-name-btn" class="keyword-btn">
+                    <i data-lucide="user" class="w-4 h-4 mr-1"></i>
+                    依名字筆劃/字母
+                </button>
+            </div>
+
+            <!-- 排行榜列表 -->
+            <div id="leaderboard-list" class="space-y-3">
+                <!-- Leaderboard items injected by JS -->
+            </div>
+            
+            <p id="empty-leaderboard-msg" class="text-center text-lg text-gray-500 py-4 hidden">
+                目前還沒有成績，趕快去 <a href="index.html" class="text-emerald-500 font-semibold hover:underline">開始測驗</a> 吧！
+            </p>
+
+            <div class="flex justify-between items-center pt-4 border-t border-gray-100">
+                <button id="clear-leaderboard-btn" class="px-4 py-2 text-sm font-medium text-red-500 hover:text-red-700 transition-colors">
+                    <i data-lucide="trash-2" class="w-4 h-4 mr-1 inline-block"></i>
+                    清除所有紀錄
+                </button>
+                <a href="index.html" class="main-button flex items-center">
+                    <i data-lucide="arrow-left" class="w-5 h-5 mr-2 inline-block"></i>
+                    返回測驗主頁
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- 頁尾（Footer） -->
+    <footer class="mt-10 py-4 border-t border-gray-200 text-center text-gray-500 text-sm bg-white shadow-inner">
+        <p>© 2025 台灣岩石與礦物小幫手 | 排行榜</p>
+    </footer>
+
+    <script>
+        // DOM 元素快取
+        const $leaderboardList = document.getElementById('leaderboard-list');
+        const $emptyLeaderboardMsg = document.getElementById('empty-leaderboard-msg');
+        const $sortScoreBtn = document.getElementById('sort-score-btn');
+        const $sortNameBtn = document.getElementById('sort-name-btn');
+        const $clearLeaderboardBtn = document.getElementById('clear-leaderboard-btn');
+
+        // 狀態
+        let leaderboardSortKey = 'score'; // 'score' 或 'name'
+        let latestSubmission = null; // 儲存從 URL 帶入的最新成績
+
+        // --- 輔助函數 ---
+
+        /** 解析 URL 參數 */
+        function getUrlParams() {
+            const params = {};
+            const queryString = window.location.search.substring(1);
+            const regex = /([^&=]+)=([^&]*)/g;
+            let m;
+            while (m = regex.exec(queryString)) {
+                params[decodeURIComponent(m[1])] = decodeURIComponent(m[2]);
+            }
+            return params;
+        }
+
+        /** 從 localStorage 獲取成績列表 */
+        function getScores() {
+            const scoresJson = localStorage.getItem('quiz_leaderboard');
+            return scoresJson ? JSON.parse(scoresJson) : [];
+        }
+
+        /** 渲染排行榜 */
+        function renderLeaderboard() {
+            const scores = getScores();
+            
+            // 排序邏輯
+            if (leaderboardSortKey === 'score') {
+                scores.sort((a, b) => b.score - a.score); // 分數由高到低
+            } else if (leaderboardSortKey === 'name') {
+                // 姓名筆劃/字母排序 (使用 localeCompare 進行中文排序)
+                scores.sort((a, b) => a.name.localeCompare(b.name, 'zh-TW', { sensitivity: 'base' }));
+            }
+
+            $leaderboardList.innerHTML = '';
+            
+            if (scores.length === 0) {
+                $emptyLeaderboardMsg.classList.remove('hidden');
+                return;
+            }
+            $emptyLeaderboardMsg.classList.add('hidden');
+
+            scores.forEach((entry, index) => {
+                const rank = index + 1;
+                let rankText = rank;
+                let rankColor = 'text-gray-500';
+                
+                if (rank === 1) {
+                    rankText = '🥇';
+                    rankColor = 'text-yellow-500';
+                } else if (rank === 2) {
+                    rankText = '🥈';
+                    rankColor = 'text-gray-400';
+                } else if (rank === 3) {
+                    rankText = '🥉';
+                    rankColor = 'text-amber-700';
+                }
+                
+                // 判斷是否為本次提交的成績
+                const isLatest = latestSubmission && 
+                                entry.name === latestSubmission.name && 
+                                entry.score === latestSubmission.score &&
+                                (entry.id == latestSubmission.id || index === 0); // 嘗試匹配 ID 或最高分
+
+                const item = document.createElement('div');
+                item.className = `flex flex-col p-4 border rounded-lg shadow-md transition-all ${isLatest ? 'bg-yellow-50 border-yellow-400 scale-[1.02] ring-2 ring-yellow-500' : 'bg-white border-gray-100'}`;
+                item.innerHTML = `
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="flex items-center space-x-3">
+                            <span class="text-2xl font-black ${rankColor}">${rankText}</span>
+                            <span class="text-xl font-bold text-gray-800">${entry.name} ${isLatest ? '⭐' : ''}</span>
+                        </div>
+                        <span class="text-3xl font-extrabold text-emerald-600">${entry.score} <span class="text-lg font-normal">分</span></span>
+                    </div>
+                    <!-- 分數條 -->
+                    <div class="w-full bg-gray-100 h-2 rounded-md overflow-hidden">
+                        <div class="score-bar" style="width: ${entry.score}%;"></div>
+                    </div>
+                    <p class="text-xs text-right ${isLatest ? 'text-yellow-700' : 'text-gray-400'} mt-1">日期：${entry.date}</p>
+                `;
+                $leaderboardList.appendChild(item);
+            });
+            lucide.createIcons();
+        }
+
+        /** 清除排行榜 */
+        function clearLeaderboard() {
+            if (confirm('確定要清除所有測驗成績紀錄嗎？')) {
+                localStorage.removeItem('quiz_leaderboard');
+                // 清除 URL 參數
+                window.history.pushState({}, document.title, window.location.pathname);
+                latestSubmission = null;
+                renderLeaderboard();
+            }
+        }
+        
+        // --- 初始化與事件監聽器 ---
+        document.addEventListener('DOMContentLoaded', () => {
+            // 1. 檢查 URL 參數以取得最新提交的成績
+            const params = getUrlParams();
+            if (params.latestName && params.latestScore) {
+                latestSubmission = { 
+                    name: params.latestName, 
+                    score: parseInt(params.latestScore),
+                    // 使用 Date.now() 作為 ID 輔助匹配，因為 ID 是時間戳
+                    // 注意：這裡只取時間，真正的 ID 在 index.html 中生成，但用於高亮已足夠
+                    id: Date.now() 
+                };
+            }
+
+            // 2. 綁定排序事件
+            $sortScoreBtn.addEventListener('click', () => {
+                leaderboardSortKey = 'score';
+                $sortScoreBtn.classList.add('selected');
+                $sortNameBtn.classList.remove('selected');
+                renderLeaderboard();
+            });
+            $sortNameBtn.addEventListener('click', () => {
+                leaderboardSortKey = 'name';
+                $sortNameBtn.classList.add('selected');
+                $sortScoreBtn.classList.remove('selected');
+                renderLeaderboard();
+            });
+
+            // 3. 綁定清除事件
+            $clearLeaderboardBtn.addEventListener('click', clearLeaderboard);
+
+            // 4. 首次渲染
+            renderLeaderboard();
+        });
+    </script>
+</body>
+</html>
