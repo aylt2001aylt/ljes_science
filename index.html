@@ -274,25 +274,25 @@
         const MINERALS = [
             // 礦石 (Minerals)
             { id: 'quartz', name: '石英', engName: 'Quartz', type: '礦物', color: ['白色', '灰色', '透明'], features: ['礦物', '白色', '灰色', '透明', '可刮玻璃', '玻璃光澤', '有結晶'], habitat: '常見於花崗岩中，是地殼中含量第二多的礦物。', usage: '電子元件、玻璃原料、寶石', imageUrl: 'images/Quartz.png' },
-            { id: 'biotite', name: '黑雲母', engName: 'Biotite', type: '礦物', color: ['黑色', '深棕色'], features: ['礦物', '黑色', '深棕色', '片狀剝落', '玻璃光澤', '有層狀構造'], habitat: '廣泛分佈於火成岩和變質岩中。', usage: '絕緣材料', imageUrl: 'https://i.ibb.co/rfvXvGJH/image.png' },
-            { id: 'calcite', name: '方解石', engName: 'Calcite', type: '礦物', color: ['白色', '透明'], features: ['礦物', '白色', '透明', '遇酸起泡', '玻璃光澤', '有結晶', '菱形解理'], habitat: '許多岩石和鐘乳石的主要成分。', usage: '光學儀器、水泥原料', imageUrl: 'https://i.ibb.co/Y7vJKS0M/image.png' },
-            { id: 'sulfur', name: '硫磺', engName: 'Sulfur', type: '礦物', color: ['黃色'], features: ['礦物', '黃色', '火山產物', '蠟狀光澤', '易燃'], habitat: '主要產於火山活動區域，如陽明山。', usage: '工業原料、藥用', imageUrl: 'https://i.ibb.co/67tg5BVj/image.png' },
-            { id: 'talc', name: '滑石', engName: 'Talc', type: '礦物', color: ['白色', '淺綠色'], features: ['礦物', '白色', '淺綠色', '皂感', '珍珠光澤'], habitat: '主要由變質作用形成。', usage: '化妝品、塗料、雕刻', imageUrl: 'https://i.ibb.co/8DjBwFRw/image.png' },
-            { id: 'muscovite', name: '白雲母', engName: 'Muscovite', type: '礦物', color: ['透明', '銀白色'], features: ['礦物', '透明', '銀白色', '片狀剝落', '珍珠光澤', '有層狀構造'], habitat: '常見於花崗岩和片麻岩中。', usage: '絕緣材料、裝飾', imageUrl: 'https://i.ibb.co/Q3JbgRrS/image.png' },
-            { id: 'graphite', name: '石墨', engName: 'Graphite', type: '礦物', color: ['黑色', '灰色'], features: ['礦物', '黑色', '灰色', '金屬光澤', '有條痕', '可導電'], habitat: '由變質作用形成，是碳的同素異形體。', usage: '鉛筆、潤滑劑、電池', imageUrl: 'https://i.ibb.co/gM9m5Vzb/image.png' },
+            { id: 'biotite', name: '黑雲母', engName: 'Biotite', type: '礦物', color: ['黑色', '深棕色'], features: ['礦物', '黑色', '深棕色', '片狀剝落', '玻璃光澤', '有層狀構造'], habitat: '廣泛分佈於火成岩和變質岩中。', usage: '絕緣材料', imageUrl: 'images/Biotite.png' },
+            { id: 'calcite', name: '方解石', engName: 'Calcite', type: '礦物', color: ['白色', '透明'], features: ['礦物', '白色', '透明', '遇酸起泡', '玻璃光澤', '有結晶', '菱形解理'], habitat: '許多岩石和鐘乳石的主要成分。', usage: '光學儀器、水泥原料', imageUrl: 'images/Calcite.png' },
+            { id: 'sulfur', name: '硫磺', engName: 'Sulfur', type: '礦物', color: ['黃色'], features: ['礦物', '黃色', '火山產物', '蠟狀光澤', '易燃'], habitat: '主要產於火山活動區域，如陽明山。', usage: '工業原料、藥用', imageUrl: 'images/Sulfur.png' },
+            { id: 'talc', name: '滑石', engName: 'Talc', type: '礦物', color: ['白色', '淺綠色'], features: ['礦物', '白色', '淺綠色', '皂感', '珍珠光澤'], habitat: '主要由變質作用形成。', usage: '化妝品、塗料、雕刻', imageUrl: 'images/Talc.png' },
+            { id: 'muscovite', name: '白雲母', engName: 'Muscovite', type: '礦物', color: ['透明', '銀白色'], features: ['礦物', '透明', '銀白色', '片狀剝落', '珍珠光澤', '有層狀構造'], habitat: '常見於花崗岩和片麻岩中。', usage: '絕緣材料、裝飾', imageUrl: 'images/Muscovite.png' },
+            { id: 'graphite', name: '石墨', engName: 'Graphite', type: '礦物', color: ['黑色', '灰色'], features: ['礦物', '黑色', '灰色', '金屬光澤', '有條痕', '可導電'], habitat: '由變質作用形成，是碳的同素異形體。', usage: '鉛筆、潤滑劑、電池', imageUrl: 'images/Graphite.png' },
 
             // 岩石 (Rocks)
-            { id: 'andesite', name: '安山岩', engName: 'Andesite', type: '火成岩', color: ['灰色', '黑色'], features: ['火成岩', '灰色', '黑色', '台灣常見', '可刮玻璃'], habitat: '台灣大屯山、觀音山等火山地區常見的火山岩。', usage: '建築石材、路基', imageUrl: 'https://i.ibb.co/9mmYSyXY/image.png' },
-            { id: 'granite', name: '花崗岩', engName: 'Granite', type: '火成岩', color: ['灰色', '白色', '黑色', '粉紅'], features: ['火成岩', '灰色', '白色', '黑色', '粉紅', '深層形成', '有結晶', '可刮玻璃'], habitat: '台灣東部山區常見的深層火成岩。', usage: '建築石材、雕刻', imageUrl: 'https://i.ibb.co/hprKVBh/image.png' },
-            { id: 'basalt', name: '玄武岩', engName: 'Basalt', type: '火成岩', color: ['黑色', '深灰色'], features: ['火成岩', '黑色', '深灰色', '火山噴出', '蜂窩狀'], habitat: '台灣離島（如澎湖）常見的噴出火成岩。', usage: '鋪路石、人造纖維', imageUrl: 'https://i.ibb.co/Kp0nmG1Q/image.png' },
+            { id: 'andesite', name: '安山岩', engName: 'Andesite', type: '火成岩', color: ['灰色', '黑色'], features: ['火成岩', '灰色', '黑色', '台灣常見', '可刮玻璃'], habitat: '台灣大屯山、觀音山等火山地區常見的火山岩。', usage: '建築石材、路基', imageUrl: 'images/Andesite.png' },
+            { id: 'granite', name: '花崗岩', engName: 'Granite', type: '火成岩', color: ['灰色', '白色', '黑色', '粉紅'], features: ['火成岩', '灰色', '白色', '黑色', '粉紅', '深層形成', '有結晶', '可刮玻璃'], habitat: '台灣東部山區常見的深層火成岩。', usage: '建築石材、雕刻', imageUrl: 'images/Granite.png' },
+            { id: 'basalt', name: '玄武岩', engName: 'Basalt', type: '火成岩', color: ['黑色', '深灰色'], features: ['火成岩', '黑色', '深灰色', '火山噴出', '蜂窩狀'], habitat: '台灣離島（如澎湖）常見的噴出火成岩。', usage: '鋪路石、人造纖維', imageUrl: 'images/Basalt.png' },
 
-            { id: 'limestone', name: '石灰岩', engName: 'Limestone', type: '沉積岩', color: ['灰色', '白色', '米黃'], features: ['沉積岩', '灰色', '白色', '米黃', '遇酸起泡', '有層狀構造', '由生物遺骸組成'], habitat: '主要由海洋生物遺骸形成，台灣西部有分佈。', usage: '水泥原料、建築', imageUrl: 'https://i.ibb.co/RGKgVkBK/image.png' },
-            { id: 'shale', name: '頁岩', engName: 'Shale', type: '沉積岩', color: ['灰色', '黑色'], features: ['沉積岩', '灰色', '黑色', '有層狀構造', '顆粒細', '片狀剝落'], habitat: '台灣西部山區常見，由泥漿壓實而成。', usage: '製磚、水泥', imageUrl: 'https://i.ibb.co/DH57RfKs/image.png' },
-            { id: 'sandstone', name: '砂岩', engName: 'Sandstone', type: '沉積岩', color: ['黃色', '褐色', '紅色'], features: ['沉積岩', '黃色', '褐色', '紅色', '顆粒粗', '有層狀構造', '砂粒組合'], habitat: '台灣北部和西部山區常見。', usage: '建築石材、磨料', imageUrl: 'https://i.ibb.co/TxpvSL8d/image.png' },
+            { id: 'limestone', name: '石灰岩', engName: 'Limestone', type: '沉積岩', color: ['灰色', '白色', '米黃'], features: ['沉積岩', '灰色', '白色', '米黃', '遇酸起泡', '有層狀構造', '由生物遺骸組成'], habitat: '主要由海洋生物遺骸形成，台灣西部有分佈。', usage: '水泥原料、建築', imageUrl: 'images/Limestone.png' },
+            { id: 'shale', name: '頁岩', engName: 'Shale', type: '沉積岩', color: ['灰色', '黑色'], features: ['沉積岩', '灰色', '黑色', '有層狀構造', '顆粒細', '片狀剝落'], habitat: '台灣西部山區常見，由泥漿壓實而成。', usage: '製磚、水泥', imageUrl: 'images/Shale.png' },
+            { id: 'sandstone', name: '砂岩', engName: 'Sandstone', type: '沉積岩', color: ['黃色', '褐色', '紅色'], features: ['沉積岩', '黃色', '褐色', '紅色', '顆粒粗', '有層狀構造', '砂粒組合'], habitat: '台灣北部和西部山區常見。', usage: '建築石材、磨料', imageUrl: 'images/Sandstone.png' },
 
-            { id: 'marble', name: '大理岩', engName: 'Marble', type: '變質岩', color: ['白色', '灰色', '雜色'], features: ['變質岩', '白色', '灰色', '雜色', '有結晶', '遇酸起泡'], habitat: '台灣東部（花蓮）常見，由石灰岩變質而成。', usage: '高級裝飾材料、雕刻', imageUrl: 'https://i.ibb.co/ztV6T8H/image.png' },
-            { id: 'slate', name: '板岩', engName: 'Slate', type: '變質岩', color: ['黑色', '灰色'], features: ['變質岩', '黑色', '灰色', '片狀剝落', '可劈裂', '有層狀構造'], habitat: '台灣中部山區常見，由頁岩或泥岩變質而成。', 'usage': '屋瓦、石板', imageUrl: 'https://i.ibb.co/tw3v0sWM/image.png' },
-            { id: 'gneiss', name: '片麻岩', engName: 'Gneiss', type: '變質岩', color: ['雜色'], features: ['變質岩', '雜色', '帶狀構造', '有結晶'], habitat: '常見於變質程度較高的地區。', usage: '建築石材', imageUrl: 'https://i.ibb.co/R4M5trLy/image.png' }
+            { id: 'marble', name: '大理岩', engName: 'Marble', type: '變質岩', color: ['白色', '灰色', '雜色'], features: ['變質岩', '白色', '灰色', '雜色', '有結晶', '遇酸起泡'], habitat: '台灣東部（花蓮）常見，由石灰岩變質而成。', usage: '高級裝飾材料、雕刻', imageUrl: 'images/Marble.png' },
+            { id: 'slate', name: '板岩', engName: 'Slate', type: '變質岩', color: ['黑色', '灰色'], features: ['變質岩', '黑色', '灰色', '片狀剝落', '可劈裂', '有層狀構造'], habitat: '台灣中部山區常見，由頁岩或泥岩變質而成。', 'usage': '屋瓦、石板', imageUrl: 'images/Slate.png' },
+            { id: 'gneiss', name: '片麻岩', engName: 'Gneiss', type: '變質岩', color: ['雜色'], features: ['變質岩', '雜色', '帶狀構造', '有結晶'], habitat: '常見於變質程度較高的地區。', usage: '建築石材', imageUrl: 'images/Gneiss.png' }
         ];
 
         // 關鍵字列表 (用於圖鑑篩選 UI)
@@ -754,3 +754,4 @@
 </body>
 
 </html>
+
