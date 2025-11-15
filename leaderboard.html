@@ -116,6 +116,7 @@
             </p>
 
             <div class="flex justify-between items-center pt-4 border-t border-gray-100">
+                <!-- 調整清除按鈕以觸發密碼 Modal -->
                 <button id="clear-leaderboard-btn" class="px-4 py-2 text-sm font-medium text-red-500 hover:text-red-700 transition-colors">
                     <i data-lucide="trash-2" class="w-4 h-4 mr-1 inline-block"></i>
                     清除所有紀錄
@@ -127,6 +128,31 @@
             </div>
         </section>
     </main>
+    
+    <!-- ⭐ 新增：密碼驗證 Modal 視窗 -->
+    <div id="password-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 z-50 flex items-center justify-center p-4 hidden transition-opacity">
+        <div class="card w-full max-w-sm relative">
+            <h3 class="text-xl font-bold mb-4 text-red-600 flex items-center">
+                <i data-lucide="lock" class="w-5 h-5 mr-2"></i>
+                需要管理員密碼
+            </h3>
+            <p class="text-gray-600 mb-4">請輸入密碼以確認清除所有排行榜紀錄。</p>
+
+            <input type="password" id="password-input" placeholder="密碼" class="w-full p-3 mb-4 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors">
+            
+            <p id="password-error" class="text-red-500 text-sm mb-4 hidden">密碼錯誤，請再試一次。</p>
+
+            <div class="flex justify-end space-x-3">
+                <button id="cancel-clear-btn" class="px-4 py-2 text-sm font-medium text-gray-500 hover:bg-gray-100 rounded-lg">
+                    取消
+                </button>
+                <button id="confirm-clear-btn" class="px-4 py-2 text-sm font-medium main-button bg-red-500 hover:bg-red-600 shadow-md shadow-red-300">
+                    確認清除
+                </button>
+            </div>
+        </div>
+    </div>
+
 
     <!-- 頁尾（Footer） -->
     <footer class="mt-10 py-4 border-t border-gray-200 text-center text-gray-500 text-sm bg-white shadow-inner">
@@ -140,10 +166,19 @@
         const $sortScoreBtn = document.getElementById('sort-score-btn');
         const $sortNameBtn = document.getElementById('sort-name-btn');
         const $clearLeaderboardBtn = document.getElementById('clear-leaderboard-btn');
-
+        // ⭐ 新增密碼 Modal 元素
+        const $passwordModal = document.getElementById('password-modal');
+        const $passwordInput = document.getElementById('password-input');
+        const $passwordError = document.getElementById('password-error');
+        const $confirmClearBtn = document.getElementById('confirm-clear-btn');
+        const $cancelClearBtn = document.getElementById('cancel-clear-btn');
+        
         // 狀態
         let leaderboardSortKey = 'score'; // 'score' 或 'name'
         let latestSubmission = null; // 儲存從 URL 帶入的最新成績
+        
+        // ⭐ 密碼常數
+        const ADMIN_PASSWORD = 'aylt2001aylt';
 
         // --- 輔助函數 ---
 
@@ -165,7 +200,7 @@
             return scoresJson ? JSON.parse(scoresJson) : [];
         }
 
-        /** 渲染排行榜 */
+        /** 渲染排行榜 (不變) */
         function renderLeaderboard() {
             const scores = getScores();
             
@@ -205,7 +240,7 @@
                 const isLatest = latestSubmission && 
                                 entry.name === latestSubmission.name && 
                                 entry.score === latestSubmission.score &&
-                                (entry.id == latestSubmission.id || index === 0); // 嘗試匹配 ID 或最高分
+                                (entry.id == latestSubmission.id || index === 0); 
 
                 const item = document.createElement('div');
                 item.className = `flex flex-col p-4 border rounded-lg shadow-md transition-all ${isLatest ? 'bg-yellow-50 border-yellow-400 scale-[1.02] ring-2 ring-yellow-500' : 'bg-white border-gray-100'}`;
@@ -228,32 +263,54 @@
             lucide.createIcons();
         }
 
-        /** 清除排行榜 */
-        function clearLeaderboard() {
-            if (confirm('確定要清除所有測驗成績紀錄嗎？')) {
+        // ⭐ 修改：清除排行榜，改為顯示密碼 Modal
+        function showClearPasswordModal() {
+            $passwordInput.value = '';
+            $passwordError.classList.add('hidden');
+            $passwordModal.classList.remove('hidden');
+            $passwordInput.focus();
+        }
+
+        // ⭐ 新增：取消清除
+        function cancelClear() {
+            $passwordModal.classList.add('hidden');
+        }
+        
+        // ⭐ 新增：密碼驗證邏輯
+        function verifyPasswordAndClear() {
+            const enteredPassword = $passwordInput.value.trim();
+            
+            if (enteredPassword === ADMIN_PASSWORD) {
+                // 驗證成功，執行清除操作
                 localStorage.removeItem('quiz_leaderboard');
-                // 清除 URL 參數
+                
+                // 隱藏 Modal
+                $passwordModal.classList.add('hidden');
+                
+                // 重新渲染並清除 URL 參數 (如果有的話)
                 window.history.pushState({}, document.title, window.location.pathname);
                 latestSubmission = null;
                 renderLeaderboard();
+            } else {
+                // 驗證失敗
+                $passwordError.classList.remove('hidden');
+                $passwordInput.focus();
             }
         }
         
         // --- 初始化與事件監聽器 ---
         document.addEventListener('DOMContentLoaded', () => {
-            // 1. 檢查 URL 參數以取得最新提交的成績
+            // 1. 檢查 URL 參數以取得最新提交的成績 (不變)
             const params = getUrlParams();
             if (params.latestName && params.latestScore) {
                 latestSubmission = { 
                     name: params.latestName, 
                     score: parseInt(params.latestScore),
-                    // 使用 Date.now() 作為 ID 輔助匹配，因為 ID 是時間戳
-                    // 注意：這裡只取時間，真正的 ID 在 index.html 中生成，但用於高亮已足夠
                     id: Date.now() 
                 };
             }
 
-            // 2. 綁定排序事件
+            // 2. 綁定排序事件 (不變)
             $sortScoreBtn.addEventListener('click', () => {
                 leaderboardSortKey = 'score';
                 $sortScoreBtn.classList.add('selected');
@@ -267,11 +324,23 @@
                 renderLeaderboard();
             });
 
-            // 3. 綁定清除事件
-            $clearLeaderboardBtn.addEventListener('click', clearLeaderboard);
+            // 3. 綁定清除事件 (修改：觸發密碼 Modal)
+            $clearLeaderboardBtn.addEventListener('click', showClearPasswordModal);
+            
+            // 4. 綁定密碼 Modal 事件
+            $cancelClearBtn.addEventListener('click', cancelClear);
+            $confirmClearBtn.addEventListener('click', verifyPasswordAndClear);
+            
+            // 允許在密碼輸入框按 Enter 鍵確認
+            $passwordInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    verifyPasswordAndClear();
+                }
+            });
 
-            // 4. 首次渲染
+            // 5. 首次渲染
             renderLeaderboard();
+            lucide.createIcons(); // 確保所有 icon 都被渲染
         });
     </script>
 </body>
