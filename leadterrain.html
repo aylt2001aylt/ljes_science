@@ -12,18 +12,19 @@
 
         /* 自定義顏色變數 */
         :root {
-            --color-bg-secondary: #eff6ff; /* 淺藍 (Blue-50) */
-            --color-main: #3b82f6; /* 主藍色 (Blue-500) */
+            --color-bg-primary: #ffffff; /* 卡片背景 (白色) */
+            --color-bg-secondary: #f0f9ff; /* 淺水藍 (Sky-50) - 頁面背景 */
+            --color-main: #f59e0b; /* [!] 主色改為琥珀色 (Amber-500) */
         }
 
         body {
-            background-color: var(--color-bg-secondary);
+            background-color: var(--color-bg-secondary); /* [!] 改成淺水藍 */
             color: #1f2937;
             padding-bottom: 4rem;
         }
 
         .card {
-            background-color: #ffffff;
+            background-color: var(--color-bg-primary); /* [!] 改成白色 */
             border-radius: 12px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
             padding: 1.5rem;
@@ -72,10 +73,10 @@
             font-weight: 500;
             transition: all 0.2s ease;
             border: 1px solid #d1d5db; /* Gray-300 */
-            background-color: #ffffff;
+            background-color: var(--color-bg-primary); /* [!] 改成白色 */
         }
         .sort-btn:hover {
-            background-color: #f3f4f6; /* Gray-100 */
+            background-color: #fefbeb; /* Amber-50 */
         }
         .sort-btn.selected {
             background-color: var(--color-main);
@@ -104,13 +105,14 @@
 <body class="min-h-screen">
 
     <!-- 頂部 Header -->
-    <header class="w-full bg-white shadow-sm sticky top-0 z-40">
+    <header class="w-full bg-white shadow-sm sticky top-0 z-40"> <!-- [!] 改回白色 */ -->
         <div class="container mx-auto max-w-3xl px-4 py-4 flex justify-between items-center">
             <div class="flex items-center gap-3">
-                <i data-lucide="bar-chart-3" class="text-blue-500"></i>
+                <i data-lucide="bar-chart-3" class="text-amber-500"></i> <!-- [!] text-sky-500 改成 text-amber-500 */ -->
                 <h1 class="text-xl md:text-2xl font-bold text-gray-800">地形測驗排行榜</h1>
             </div>
-            <a href="./terrain.html" class="text-sm font-medium text-blue-600 hover:underline flex items-center gap-1">
+            <!-- [!] 更新連結 -->
+            <a href="terrain.html" class="text-sm font-medium text-amber-600 hover:underline flex items-center gap-1"> <!-- [!] text-sky-600 改成 text-amber-600 */ -->
                 <i data-lucide="arrow-left" class="w-4 h-4"></i> 返回地形測驗
             </a>
         </div>
@@ -244,7 +246,7 @@
             leaderboardData.forEach((entry, index) => {
                 const rank = index + 1;
                 const tr = document.createElement('tr');
-                tr.className = 'border-b border-gray-100 last:border-b-0 hover:bg-blue-50';
+                tr.className = 'border-b border-gray-100 last:border-b-0 hover:bg-amber-50'; <!-- [!] hover:bg-sky-50 改成 hover:bg-amber-50 */ -->
                 
                 let rankColor = 'text-gray-700';
                 if (rank === 1) rankColor = 'text-yellow-500';
@@ -254,7 +256,7 @@
                 tr.innerHTML = `
                     <td class="p-3 font-bold text-lg ${rankColor}">${rank}</td>
                     <td class="p-3 font-medium text-gray-800">${escapeHTML(entry.name)}</td>
-                    <td class="p-3 text-right font-bold text-lg ${rank === 1 ? 'text-blue-600' : 'text-gray-800'}">${entry.score}</td>
+                    <td class="p-3 text-right font-bold text-lg ${rank === 1 ? 'text-amber-600' : 'text-gray-800'}">${entry.score}</td> <!-- [!] text-sky-600 改成 text-amber-600 */ -->
                 `;
                 $tbody.appendChild(tr);
             });
@@ -374,4 +376,3 @@
     </script>
 </body>
 </html>
-
