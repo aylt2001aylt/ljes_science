@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>河流與海岸地形：圖鑑與測驗</title>
+    <!-- 載入 Tailwind CSS --><script src="https://cdn.tailwindcss.com"></script>
+    <!-- 載入 Lucide Icons --><script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* 字型建議：Noto Sans TC / Inter */
+        html { font-family: 'Inter', 'Noto Sans TC', sans-serif; }
+
+        /* 自定義顏色變數 */
+        :root {
+            --color-bg-primary: #ffffff; /* 卡片背景 (白色) */
+            --color-bg-secondary: #f0f9ff; /* 淺水藍 (Sky-50) - 頁面背景 */
+            --color-main: #f59e0b; /* [!] 主色改為琥珀色 (Amber-500) */
+            --color-accent: #6b7280; /* 灰色 (Gray-500) */
+            --color-text: #1f2937;
+        }
+
+        body {
+            background-color: var(--color-bg-secondary); /* 淺水藍背景 */
+            color: var(--color-text);
+            padding-bottom: 4rem;
+        }
+
+        .card {
+            background-color: var(--color-bg-primary); /* [!] 改回白色，在淺藍底色上更突出 */
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+        }
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        /* 模式切換按鈕 */
+        .mode-btn {
+            padding: 0.75rem 1.25rem;
+            border: 2px solid transparent;
+            border-radius: 999px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .mode-btn:hover {
+            background-color: rgba(255, 255, 255, 0.7); 
+        }
+        .mode-btn.selected {
+            background-color: var(--color-bg-primary); /* [!] 改成白色 */
+            border-color: var(--color-main);
+            color: var(--color-main);
+            box-shadow: 0 4px 10px rgba(245, 158, 11, 0.2); /* [!] 更新陰影顏色為琥珀色 */
+        }
+
+        /* 關鍵字篩選按鈕 */
+        .keyword-btn {
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            border: 1px solid #d1d5db; /* Gray-300 */
+        }
+        .keyword-btn:hover {
+            background-color: #f3f4f6; /* Gray-100 */
+        }
+        .keyword-btn.selected {
+            background-color: var(--color-main);
+            color: white;
+            border-color: var(--color-main);
+        }
+
+        /* 主要按鈕 */
+        .main-button {
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            color: white;
+            background: var(--color-main);
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(245, 158, 11, 0.3); /* [!] 更新陰影顏色為琥珀色 */
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .main-button:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+        }
+        
+        /* 次要按鈕 */
+        .secondary-button {
+             padding: 0.6rem 1.25rem;
+            border-radius: 8px;
+            font-weight: 600;
+            color: var(--color-text);
+            background: #e5e7eb; /* Gray-200 */
+            transition: all 0.3s ease;
+        }
+        .secondary-button:hover {
+            background: #d1d5db; /* Gray-300 */
+        }
+
+        /* 測驗選項 */
+        .quiz-option {
+            display: block;
+            width: 100%;
+            padding: 1rem;
+            border: 2px solid #e5e7eb; /* Gray-200 */
+            border-radius: 8px;
+            text-align: left;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+        .quiz-option:hover {
+            border-color: var(--color-main);
+            background-color: #fef3c7; /* Amber-100 */
+        }
+        .quiz-option.selected {
+            border-color: var(--color-main);
+            background-color: var(--color-main);
+            color: white;
+            box-shadow: 0 4px 8px rgba(245, 158, 11, 0.2); /* [!] 更新陰影顏色為琥珀色 */
+        }
+        /* 答對/答錯的樣式 */
+        .quiz-option.correct {
+            background-color: #dcfce7; /* Green-100 */
+            border-color: #22c55e; /* Green-500 */
+            color: #166534; /* Green-800 */
+        }
+        .quiz-option.incorrect {
+            background-color: #fee2e2; /* Red-100 */
+            border-color: #ef4444; /* Red-500 */
+            color: #991b1b; /* Red-800 */
+        }
+
+        /* Modal 彈窗 */
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background-color: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+        }
+        .modal-content {
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        /* 隱藏元素 */
+        .hidden { display: none; }
+    </style>
+</head>
+<body class="min-h-screen">
+
+    <!-- 頂部 Header -->
+    <header class="w-full bg-white shadow-sm sticky top-0 z-40"> <!-- [!] 改回白色背景 */ -->
+        <div class="container mx-auto max-w-5xl px-4 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <i data-lucide="waves" class="text-amber-500"></i> <!-- [!] text-sky-500 改成 text-amber-500 -->
+                <h1 id="app-name" class="text-xl md:text-2xl font-bold text-gray-800">河流與海岸地形</h1>
+            </div>
+            <div id="date" class="text-sm text-gray-500 hidden md:block"></div>
+        </div>
+    </header>
+
+    <!-- 主內容區 -->
+    <main class="container mx-auto max-w-5xl px-4 mt-8">
+        
+        <!-- 模式切換 -->
+        <div class="flex justify-center gap-2 md:gap-4 bg-white/60 p-2 rounded-full shadow-inner max-w-sm mx-auto"> <!-- [!] bg-amber-50/60 改成 bg-white/60 */ -->
+            <button id="mode-gallery-btn" class="mode-btn selected">
+                <i data-lucide="book-image"></i> 地形圖鑑
+            </button>
+            <button id="mode-quiz-btn" class="mode-btn">
+                <i data-lucide="file-question"></i> 知識測驗
+            </button>
+        </div>
+
+        <!-- ========================= -->
+        <!-- 模式一：圖鑑 (Gallery Mode)  -->
+        <!-- ========================= -->
+        <div id="gallery-mode">
+            <div class="card mt-6 p-4 md:p-6">
+                <h2 id="gallery-title" class="text-2xl font-bold mb-2 text-gray-800">地形圖鑑</h2>
+                <p id="gallery-desc" class="text-gray-600 mb-6">篩選並點擊卡片，查看各地形的詳細資訊。</p>
+                
+                <!-- 關鍵字篩選 -->
+                <div class="mb-4">
+                    <h3 class="text-sm font-semibold text-gray-700 mb-3">篩選條件：</h3>
+                    <div id="keyword-filters" class="flex flex-wrap gap-2">
+                        <!-- 關鍵字按鈕將由 JS 載入 -->
+                    </div>
+                    <button id="clear-filters-btn" class="text-sm text-amber-600 hover:underline mt-3 ml-1"> <!-- [!] text-sky-600 改成 text-amber-600 */ -->
+                        <i data-lucide="rotate-ccw" class="inline-block w-4 h-4 -mt-1"></i> 清除全部
+                    </button>
+                </div>
+            </div>
+
+            <!-- 圖鑑卡片列表 -->
+            <div id="gallery-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6 mt-6">
+                <!-- 圖鑑卡片將由 JS 載入 -->
+            </div>
+            <p id="no-results" class="text-center text-gray-500 mt-10 hidden">找不到符合條件的地形。</p>
+        </div>
+
+        <!-- ===================== -->
+        <!-- 模式二：測驗 (Quiz Mode) -->
+        <!-- ===================== -->
+        <div id="quiz-mode" class="hidden">
+            
+            <!-- 測驗卡片 (多個畫面切換) -->
+            <div class="card mt-6">
+                <div id="quiz-screen-container" class="transition-opacity duration-300">
+                    
+                    <!-- 畫面1: 開始畫面 -->
+                    <div id="start-screen" class="text-center p-4">
+                        <i data-lucide="file-question" class="w-16 h-16 text-amber-400 mx-auto mb-4"></i> <!-- [!] text-sky-400 改成 text-amber-400 */ -->
+                        <h2 id="quiz-title" class="text-2xl font-bold mb-2">地形知識小測驗</h2>
+                        <p id="start-desc" class="text-gray-600 mb-6">你對河流與海岸地形有多了解呢？</p>
+                        <div class="max-w-xs mx-auto">
+                            <label for="name-input" class="block text-sm font-medium text-gray-700 mb-1 text-left">請輸入你的名字：</label>
+                            <input type="text" id="name-input" class="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="例如：王小明">
+                            <p id="name-error" class="text-red-500 text-sm mt-1 text-left hidden">請務必輸入名字！</p>
+                        </div>
+                        <button id="start-quiz-btn" class="main-button mt-6">
+                            <i data-lucide="play"></i> 開始測驗
+                        </button>
+                    </div>
+
+                    <!-- 畫面2: 測驗中 -->
+                    <div id="question-screen" class="p-4 hidden">
+                        <div class="flex justify-between items-center mb-4">
+                            <div class="text-sm text-gray-500">
+                                問題 <span id="question-number">1</span> / <span id="total-questions">12</span>
+                            </div>
+                            <div class="text-lg font-bold text-amber-600"> <!-- [!] text-sky-600 改成 text-amber-600 */ -->
+                                分數: <span id="current-score">0</span>
+                            </div>
+                        </div>
+                        <!-- 進度條 -->
+                        <div class="w-full bg-gray-200 rounded-full h-2.5 mb-6">
+                            <div id="progress-bar" class="bg-amber-500 h-2.5 rounded-full transition-all duration-300" style="width: 10%"></div> <!-- [!] bg-sky-500 改成 bg-amber-500 */ -->
+                        </div>
+                        
+                        <h3 id="question-text" class="text-xl font-semibold mb-6 min-h-[60px]">問題文字...</h3>
+                        
+                        <div id="options-container" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <!-- 選項按鈕將由 JS 載入 -->
+                        </div>
+                        
+                        <div class="mt-8 text-right">
+                            <button id="next-question-btn" class="main-button" disabled>
+                                下一題 <i data-lucide="arrow-right"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 畫面3: 測驗結束 -->
+                    <div id="end-screen" class="text-center p-4 hidden">
+                        <i id="result-icon" class="w-16 h-16 mx-auto mb-4"></i>
+                        <h2 class="text-2xl font-bold mb-2">測驗結束！</h2>
+                        <p class="text-lg text-gray-700 mb-4">
+                            <span id="player-name"></span>，你的得分是：
+                        </p>
+                        <p class="text-5xl font-extrabold text-amber-600 mb-6" id="final-score">0</p> <!-- [!] text-sky-600 改成 text-amber-600 */ -->
+                        <p class="text-gray-600 mb-8" id="result-message">做得不錯！</p>
+                        <div class="flex flex-wrap justify-center gap-4">
+                            <button id="restart-quiz-btn" class="secondary-button">
+                                <i data-lucide="refresh-cw" class="inline-block w-4 h-4 -mt-1"></i> 重新測驗
+                            </button>
+                            <!-- [!] 更新連結 -->
+                            <a href="./leadterrain.html" class="main-button">
+                                <i data-lucide="bar-chart-3"></i> 查看排行榜
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Modal 彈窗 (圖鑑詳情) -->
+    <div id="modal-backdrop" class="modal-backdrop hidden">
+        <div class="card modal-content w-11/12 max-w-2xl relative m-4">
+            <!-- 關閉按鈕 -->
+            <button id="close-modal-btn" class="absolute top-3 right-3 text-gray-400 hover:text-gray-600 transition-colors">
+                <i data-lucide="x" class="w-7 h-7"></i>
+            </button>
+            
+            <img id="modal-img" src="https://placehold.co/600x400/3b82f6/white?text=地形" alt="地形圖片" class="w-full h-48 md:h-64 object-cover rounded-t-lg bg-gray-200">
+            
+            <div class="p-5 md:p-8">
+                <h2 id="modal-name" class="text-3xl font-bold mb-3 text-gray-900">地形名稱</h2>
+                <div id="modal-keywords" class="flex flex-wrap gap-2 mb-5">
+                    <!-- 關鍵字標籤 -->
+                </div>
+                <p id="modal-description" class="text-base text-gray-700 leading-relaxed">
+                    詳細描述...
+                </p>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        // ===============
+        // 1. 資料定義
+        // ===============
+
+        // 圖鑑資料 (從 PDF 內容中提取)
+        const galleryData = [
+            {
+                id: 1,
+                name: "峽谷",
+                description: "河流長時間向下侵蝕堅硬的岩層，所形成兩岸陡峭、谷地深狹的地形。例如花蓮的太魯閣峽谷。",
+                img: "images/egnbbo.jpg",
+                keywords: ["流水", "侵蝕", "地形"]
+            },
+            {
+                id: 2,
+                name: "瀑布",
+                description: "河流遇到坡度急遽變陡的地方，水流由高處傾瀉而下，形成瀑布。例如新北市的十分瀑布。",
+                img: "images/jbdp.png",
+                keywords: ["流水", "侵蝕", "地形"]
+            },
+            {
+                id: 3,
+                name: "土石流",
+                description: "颱風或大雨帶來的大量雨水，混合山坡上的泥沙和石塊，順著山谷流下，可能覆蓋山路或摧毀建築。",
+                img: "images/ye1loo.png",
+                keywords: ["流水", "侵蝕", "災害"]
+            },
+            {
+                id: 4,
+                name: "沖積扇/三角洲",
+                description: "河流由山區流到平地時，坡度變緩，流速減慢，砂石在山口附近堆積，形成扇形的地形。",
+                img: "images/wcihhmb.png",
+                keywords: ["流水", "堆積", "地形"]
+            },
+            /* [!] 移除了 ID 5 "三角洲" */
+            {
+                id: 6,
+                name: "曲流",
+                description: "在平緩的河道，水流會自然彎曲。水流較快的凹岸易受侵蝕，水流較慢的凸岸則易堆積泥沙。",
+                img: "images/fowts.png",
+                keywords: ["流水", "侵蝕", "堆積", "地形"]
+            },
+            {
+                id: 7,
+                name: "海蝕崖",
+                description: "海岸邊的陡峭懸崖，主要是由海浪不斷拍打、侵蝕岩壁形成的。",
+                img: "images/wvomxca.png",
+                keywords: ["海浪", "侵蝕", "地形"]
+            },
+            {
+                id: 8,
+                name: "海蝕平臺",
+                description: "海蝕崖受海浪侵蝕後退，在海蝕崖前方留下一個接近海平面的平坦岩臺。",
+                img: "images/wvompj.png",
+                keywords: ["海浪", "侵蝕", "地形"]
+            },
+            {
+                id: 9,
+                name: "沙洲/外傘頂洲",
+                description: "河流攜帶的泥沙在出海口堆積，或由海流搬運堆積，形成平行於海岸的長條形沙地。例如臺南曾文溪口沙洲。",
+                img: "images/cpabbbj.png",
+                keywords: ["海浪", "堆積", "地形"]
+            },
+            {
+                id: 10,
+                name: "沙灘",
+                description: "海浪將細小的沙粒帶到岸邊堆積，形成一片平緩的沙地。例如墾丁沙灘。",
+                img: "images/wspwrcv.png",
+                keywords: ["海浪", "堆積", "地形"]
+            },
+            {
+                id: 11,
+                name: "礫石灘",
+                description: "海浪將較大的礫石帶到岸邊堆積，形成的海岸。例如花蓮七星潭。",
+                img: "images/lornloo.png",
+                keywords: ["海浪", "堆積", "地形"]
+            },
+            {
+                id: 12,
+                name: "風稜石",
+                description: "岩石長期受強風夾帶砂粒磨蝕，形成有稜有角的特殊外觀。例如新北市富貴角。",
+                img: "images/rcahyrp.png",
+                keywords: ["風", "侵蝕", "地形"]
+            },
+            {
+                id: 13,
+                name: "海蝕拱門",
+                description: "海岸岩層長期受到海浪侵蝕，較脆弱的部分被穿透，形成拱門般的洞穴。例如澎湖的鯨魚洞。",
+                img: "images/jrbmi.png",
+                keywords: ["海浪", "侵蝕", "地形"]
+            },
+            {
+                id: 14,
+                name: "九棚大沙漠",
+                description: "因強風將河口或岸邊的沙，不斷向上吹送堆積至高地而形成的沙丘景觀。例如屏東滿州鄉的九棚大沙漠。",
+                img: "images/wspwrdd.png",
+                keywords: ["風", "堆積", "地形"]
+            },
+            { /* [!] 新增 "壺穴" */
+                id: 15,
+                name: "壺穴",
+                description: "河流中的石塊或礫石，在河床上凹處受水流帶動旋轉，長時間鑽磨岩床所形成的圓形坑洞。例如基隆的暖暖壺穴。",
+                img: "images/ynonbn.png",
+                keywords: ["流水", "侵蝕", "地形"]
+            }
+        ];
+
+        // 關鍵字篩選
+        const keywordFilters = [
+            { id: "流水", name: "流水作用", color: "blue" },
+            { id: "海浪", name: "海浪作用", color: "cyan" },
+            { id: "風", name: "風力作用", color: "purple" },
+            { id: "侵蝕", name: "侵蝕作用", color: "red" },
+            { id: "堆積", name: "堆積作用", color: "yellow" },
+            { id: "地形", name: "地形景觀", color: "gray" },
+            { id: "災害", name: "自然災害", color: "pink" },
+        ];
+        
+        // 測驗題目
+        const quizData = [
+            {
+                question: "像太魯閣那樣，兩岸陡峭、谷地深狹的地形稱為什麼？",
+                options: ["峽谷", "沖積扇", "三角洲", "沙灘"],
+                answer: "峽谷"
+            },
+            {
+                question: "河流由山區流到平地，砂石在山口堆積成的扇形地形是？",
+                options: ["瀑布", "沖積扇", "海蝕崖", "三角洲"],
+                answer: "沖積扇"
+            },
+            /* [!] 移除了 "三角洲" 的問題 */
+            {
+                question: "海浪侵蝕海岸邊的懸崖，使其後退，前方留下的平坦岩臺稱為什麼？",
+                options: ["海蝕平臺", "沙灘", "峽谷", "瀑布"],
+                answer: "海蝕平臺"
+            },
+            {
+                question: "颱風帶來大量雨水，混合泥沙石塊從山谷流下，這是什麼災害？",
+                options: ["地震", "海嘯", "土石流", "乾旱"],
+                answer: "土石流"
+            },
+            {
+                question: "在平緩的河道中，水流較慢的「凸岸」容易發生什麼作用？",
+                options: ["侵蝕作用", "堆積作用", "風化作用", "火山作用"],
+                answer: "堆積作用"
+            },
+            {
+                question: "花蓮七星潭是由海浪堆積什麼物質形成的海岸？",
+                options: ["細沙", "礫石", "土壤", "火山岩"],
+                answer: "礫石"
+            },
+            {
+                question: "什麼是形成「海蝕崖」和「海蝕平臺」最主要的力量？",
+                options: ["河流", "風", "冰川", "海浪"],
+                answer: "海浪"
+            },
+            {
+                question: "新北市富貴角的「風稜石」是受到什麼力量磨蝕形成的？",
+                options: ["流水", "海浪", "風", "生物"],
+                answer: "風"
+            },
+            {
+                question: "河流遇到坡度急遽變陡，水流由高處傾瀉而下，會形成什麼？",
+                options: ["三角洲", "瀑布", "沖積扇", "沙洲"],
+                answer: "瀑布"
+            },
+            {
+                question: "海岸岩層長期受海浪侵蝕，被穿透形成的拱門般洞穴，稱為什麼？",
+                options: ["海蝕拱門", "峽谷", "沙洲", "風稜石"],
+                answer: "海蝕拱門"
+            },
+            {
+                question: "屏東滿州鄉的「九棚大沙漠」景觀，主要是由什麼力量堆積沙粒形成的？",
+                options: ["風", "流水", "海浪", "地震"],
+                answer: "風"
+            },
+            { /* [!] 新增 "壺穴" 的問題 */
+                question: "河流中的礫石在河床凹處旋轉鑽磨，形成的圓形坑洞稱為什麼？",
+                options: ["壺穴", "沖積扇", "瀑布", "海蝕崖"],
+                answer: "壺穴"
+            }
+        ];
+
+        // ===============
+        // 2. 狀態變數
+        // ===============
+        
+        // --- 圖鑑模式 ---
+        let selectedKeywords = new Set();
+
+        // --- 測驗模式 ---
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let studentName = "";
+        let questions = []; // 隨機排序後的題目
+        let answerSelected = false; // 是否已選擇答案
+
+        // ===============
+        // 3. 取得 DOM 元素
+        // ===============
+        
+        // --- 通用 ---
+        const $date = document.getElementById('date');
+        const $modeGalleryBtn = document.getElementById('mode-gallery-btn');
+        const $modeQuizBtn = document.getElementById('mode-quiz-btn');
+        const $galleryMode = document.getElementById('gallery-mode');
+        const $quizMode = document.getElementById('quiz-mode');
+
+        // --- 圖鑑模式 ---
+        const $keywordFilters = document.getElementById('keyword-filters');
+        const $clearBtn = document.getElementById('clear-filters-btn');
+        const $galleryGrid = document.getElementById('gallery-grid');
+        const $noResults = document.getElementById('no-results');
+        const $modal = document.getElementById('modal-backdrop');
+        const $closeModalBtn = document.getElementById('close-modal-btn');
+        const $modalImg = document.getElementById('modal-img');
+        const $modalName = document.getElementById('modal-name');
+        const $modalKeywords = document.getElementById('modal-keywords');
+        const $modalDescription = document.getElementById('modal-description');
+
+        // --- 測驗模式 ---
+        const $quizContainer = document.getElementById('quiz-screen-container');
+        const $startScreen = document.getElementById('start-screen');
+        const $questionScreen = document.getElementById('question-screen');
+        const $endScreen = document.getElementById('end-screen');
+        
+        const $nameInput = document.getElementById('name-input');
+        const $nameError = document.getElementById('name-error');
+        const $startBtn = document.getElementById('start-quiz-btn');
+        
+        const $questionNumber = document.getElementById('question-number');
+        const $totalQuestions = document.getElementById('total-questions');
+        const $currentScore = document.getElementById('current-score');
+        const $progressBar = document.getElementById('progress-bar');
+        const $questionText = document.getElementById('question-text');
+        const $optionsContainer = document.getElementById('options-container');
+        const $nextBtn = document.getElementById('next-question-btn');
+
+        const $resultIcon = document.getElementById('result-icon');
+        const $playerName = document.getElementById('player-name');
+        const $finalScore = document.getElementById('final-score');
+        const $resultMessage = document.getElementById('result-message');
+        const $restartBtn = document.getElementById('restart-quiz-btn');
+
+        // ===============
+        // 4. 函式定義
+        // ===============
+
+        // --- 模式切換 ---
+        function showAppMode(mode) {
+            if (mode === 'gallery') {
+                $galleryMode.classList.remove('hidden');
+                $quizMode.classList.add('hidden');
+                $modeGalleryBtn.classList.add('selected');
+                $modeQuizBtn.classList.remove('selected');
+                document.body.style.backgroundColor = 'var(--color-bg-secondary)'; // 淺藍
+            } else if (mode === 'quiz') {
+                $galleryMode.classList.add('hidden');
+                $quizMode.classList.remove('hidden');
+                $modeGalleryBtn.classList.remove('selected');
+                $modeQuizBtn.classList.add('selected');
+                document.body.style.backgroundColor = 'var(--color-bg-primary)'; // 米白
+            }
+        }
+
+        // --- 圖鑑模式 (Gallery) ---
+
+        // 渲染關鍵字按鈕
+        function renderKeywords() {
+            $keywordFilters.innerHTML = '';
+            keywordFilters.forEach(kw => {
+                const btn = document.createElement('button');
+                btn.className = `keyword-btn ${selectedKeywords.has(kw.id) ? 'selected' : ''}`;
+                btn.textContent = kw.name;
+                btn.dataset.keyword = kw.id;
+                // 添加顏色對應 (可選)
+                // if (selectedKeywords.has(kw.id)) {
+                //    btn.style.backgroundColor = `var(--color-${kw.color}-500)`;
+                // }
+                btn.addEventListener('click', () => toggleKeyword(kw.id));
+                $keywordFilters.appendChild(btn);
+            });
+        }
+
+        // 切換關鍵字
+        function toggleKeyword(keyword) {
+            if (selectedKeywords.has(keyword)) {
+                selectedKeywords.delete(keyword);
+            } else {
+                selectedKeywords.add(keyword);
+            }
+            renderKeywords();
+            filterGallery();
+        }
+
+        // 篩選並渲染圖鑑
+        function filterGallery() {
+            $galleryGrid.innerHTML = '';
+            let hasResults = false;
+            
+            // [NEW] 只有在選擇了關鍵字時才進行篩選
+            let filteredData = [];
+            if (selectedKeywords.size > 0) {
+                filteredData = galleryData.filter(item => {
+                    // 確保所有選中的關鍵字都存在於 item.keywords 中
+                    return Array.from(selectedKeywords).every(kw => item.keywords.includes(kw));
+                });
+            }
+
+            if (filteredData.length > 0) {
+                hasResults = true;
+                filteredData.forEach(item => {
+                    const card = document.createElement('div');
+                    card.className = 'card cursor-pointer';
+                    card.innerHTML = `
+                        <img src="${item.img}" alt="${item.name}" class="w-full h-32 object-cover rounded-t-lg bg-gray-200">
+                        <div class="p-4">
+                            <h3 class="font-bold text-lg text-gray-800">${item.name}</h3>
+                        </div>
+                    `;
+                    card.addEventListener('click', () => showModal(item));
+                    $galleryGrid.appendChild(card);
+                });
+            }
+
+            // [NEW] 更新 $noResults 的邏輯
+            if (hasResults) {
+                $noResults.classList.add('hidden');
+            } else {
+                $noResults.classList.remove('hidden');
+                if (selectedKeywords.size === 0) {
+                    // 初始狀態或清除後
+                    $noResults.textContent = '請點選上方的篩選條件來顯示地形。';
+                } else {
+                    // 有篩選，但無結果
+                    $noResults.textContent = '找不到符合條件的地形。';
+                }
+            }
+        }
+
+        // 顯示 Modal
+        function showModal(item) {
+            $modalImg.src = item.img;
+            $modalImg.alt = item.name;
+            $modalName.textContent = item.name;
+            $modalDescription.textContent = item.description;
+            
+            $modalKeywords.innerHTML = '';
+            item.keywords.forEach(kwId => {
+                const kwConfig = keywordFilters.find(k => k.id === kwId);
+                if (kwConfig) {
+                    const tag = document.createElement('span');
+                    tag.className = `text-xs font-medium px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800`; <!-- [!] sky 改成 amber */ -->
+                    tag.textContent = kwConfig.name;
+                    $modalKeywords.appendChild(tag);
+                }
+            });
+            
+            $modal.classList.remove('hidden');
+        }
+
+        // 關閉 Modal
+        function closeModal() {
+            $modal.classList.add('hidden');
+        }
+
+        // --- 測驗模式 (Quiz) ---
+
+        // 切換測驗畫面
+        function showQuizScreen(screenId) {
+            $quizContainer.style.opacity = 0;
+            setTimeout(() => {
+                ['start-screen', 'question-screen', 'end-screen'].forEach(id => {
+                    document.getElementById(id).classList.add('hidden');
+                });
+                document.getElementById(screenId).classList.remove('hidden');
+                $quizContainer.style.opacity = 1;
+            }, 300);
+        }
+
+        // 隨機排序陣列 (Fisher-Yates)
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        // 開始遊戲
+        function startGame() {
+            studentName = $nameInput.value.trim();
+            if (studentName === "") {
+                $nameError.classList.remove('hidden');
+                return;
+            }
+            $nameError.classList.add('hidden');
+
+            // 初始化
+            score = 0;
+            currentQuestionIndex = 0;
+            questions = shuffleArray([...quizData]); // 複製並打亂題目
+            
+            // 更新總題數顯示
+            $totalQuestions.textContent = questions.length;
+            
+            showQuizScreen('question-screen');
+            loadQuestion();
+        }
+
+        // 載入問題
+        function loadQuestion() {
+            answerSelected = false; // 重置答案選擇狀態
+            const q = questions[currentQuestionIndex];
+
+            // 更新進度
+            $questionNumber.textContent = currentQuestionIndex + 1;
+            $currentScore.textContent = Math.round(score); // [!] 更新分數顯示
+            $progressBar.style.width = `${((currentQuestionIndex + 1) / questions.length) * 100}%`;
+
+            // 載入題目和選項
+            $questionText.textContent = q.question;
+            $optionsContainer.innerHTML = '';
+            
+            const shuffledOptions = shuffleArray([...q.options]); // 打亂選項
+            
+            shuffledOptions.forEach(option => {
+                const btn = document.createElement('button');
+                btn.className = 'quiz-option';
+                btn.textContent = option;
+                btn.addEventListener('click', () => selectAnswer(btn, option, q.answer));
+                $optionsContainer.appendChild(btn);
+            });
+            
+            $nextBtn.disabled = true; // 必須先選答案
+            // [!] 修正按鈕文字
+            if (currentQuestionIndex === questions.length - 1) {
+                $nextBtn.innerHTML = '完成測驗 <i data-lucide="check-circle"></i>';
+            } else {
+                $nextBtn.innerHTML = '下一題 <i data-lucide="arrow-right"></i>';
+            }
+            lucide.createIcons(); // 渲染按鈕上的 icon
+        }
+        
+        // 選擇答案
+        function selectAnswer(btn, selectedOption, correctAnswer) {
+            if (answerSelected) return; // 如果已經選過答案，就不要再執行
+            answerSelected = true;
+            
+            const allOptions = $optionsContainer.querySelectorAll('.quiz-option');
+            allOptions.forEach(opt => {
+                opt.disabled = true; // 鎖定所有選項
+                
+                if (opt.textContent === correctAnswer) {
+                    opt.classList.add('correct'); // 標示正確答案
+                } else if (opt === btn) {
+                    opt.classList.add('incorrect'); // 標示選錯的答案
+                }
+            });
+
+            if (selectedOption === correctAnswer) {
+                // [!] 修正：分數計算改為 100 / 總題數
+                score += (100 / questions.length);
+                $currentScore.textContent = Math.round(score); // 即時更新分數
+            }
+            
+            $nextBtn.disabled = false; // 允許按下一題
+        }
+
+        // 下一題
+        function nextQuestion() {
+            currentQuestionIndex++;
+            if (currentQuestionIndex < questions.length) {
+                loadQuestion();
+            } else {
+                endGame();
+            }
+        }
+
+        // 結束遊戲
+        function endGame() {
+            const finalScore = Math.round(score); // 最終分數取整數
+            
+            showQuizScreen('end-screen');
+            $playerName.textContent = studentName;
+            $finalScore.textContent = finalScore;
+
+            // 根據分數給予不同鼓勵
+            if (finalScore >= 90) {
+                $resultMessage.textContent = "太厲害了，你是地形大師！";
+                // [FIX] 修改為使用 data-lucide 屬性
+                $resultIcon.setAttribute('data-lucide', 'award');
+                $resultIcon.className = 'text-yellow-500 w-16 h-16 mx-auto mb-4';
+            } else if (finalScore >= 70) {
+                $resultMessage.textContent = "做得不錯！對地形有深入的了解！";
+                // [FIX] 修改為使用 data-lucide 屬性 (trendingUp -> trending-up)
+                $resultIcon.setAttribute('data-lucide', 'trending-up');
+                $resultIcon.className = 'text-green-500 w-16 h-16 mx-auto mb-4';
+            } else if (finalScore >= 50) {
+                $resultMessage.textContent = "還不錯，再多看看圖鑑會更熟悉喔！";
+                // [FIX] 修改為使用 data-lucide 屬性
+                $resultIcon.setAttribute('data-lucide', 'thumbs-up');
+                $resultIcon.className = 'text-amber-500 w-16 h-16 mx-auto mb-4';
+            } else {
+                $resultMessage.textContent = "別氣餒，多逛逛圖鑑，下次會更好！";
+                // [FIX] 修改為使用 data-lucide 屬性
+                $resultIcon.setAttribute('data-lucide', 'book-open');
+                $resultIcon.className = 'text-gray-500 w-16 h-16 mx-auto mb-4';
+            }
+            
+            // [FIX] 呼叫 createIcons() 來渲染剛剛設定的圖示
+            lucide.createIcons();
+            
+            // ⭐ 將成績儲存到 localStorage，以便排行榜頁面讀取
+            localStorage.setItem('latestScore', finalScore);
+            localStorage.setItem('latestName', studentName);
+        }
+
+        // ===============
+        // 5. 事件綁定
+        // ===============
+        document.addEventListener('DOMContentLoaded', () => {
+            // 初始載入 Lucide Icons
+            lucide.createIcons();
+
+            // 初始化日期
+            const now = new Date();
+            $date.textContent = now.toLocaleDateString('zh-TW', {
+                year: 'numeric', month: 'long', day: 'numeric', weekday: 'short'
+            });
+
+            // 圖鑑模式事件
+            renderKeywords();
+            filterGallery();
+            $clearBtn.addEventListener('click', () => {
+                selectedKeywords.clear();
+                renderKeywords();
+                filterGallery();
+            });
+            $modal.addEventListener('click', (e) => {
+                if (e.target === $modal) { closeModal(); }
+            });
+            $closeModalBtn.addEventListener('click', closeModal);
+
+
+            // 測驗模式事件
+            $startBtn.addEventListener('click', startGame);
+            $nextBtn.addEventListener('click', nextQuestion);
+            $restartBtn.addEventListener('click', () => {
+                $nameInput.value = studentName; // 保留上次的名字
+                showQuizScreen('start-screen');
+            });
+            $nameInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') { startGame(); }
+            });
+            
+            // 模式切換事件
+            $modeGalleryBtn.addEventListener('click', () => showAppMode('gallery'));
+            $modeQuizBtn.addEventListener('click', () => showAppMode('quiz'));
+
+            // 初始顯示為圖鑑模式
+            showAppMode('gallery');
+        });
+
+    </script>
+</body>
+</html>

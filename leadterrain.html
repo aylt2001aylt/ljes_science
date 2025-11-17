@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>地形測驗排行榜</title>
+    <!-- 載入 Tailwind CSS --><script src="https://cdn.tailwindcss.com"></script>
+    <!-- 載入 Lucide Icons --><script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* 字型建議：Noto Sans TC / Inter */
+        html { font-family: 'Inter', 'Noto Sans TC', sans-serif; }
+
+        /* 自定義顏色變數 */
+        :root {
+            --color-bg-secondary: #eff6ff; /* 淺藍 (Blue-50) */
+            --color-main: #3b82f6; /* 主藍色 (Blue-500) */
+        }
+
+        body {
+            background-color: var(--color-bg-secondary);
+            color: #1f2937;
+            padding-bottom: 4rem;
+        }
+
+        .card {
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            padding: 1.5rem;
+        }
+
+        .main-button {
+            padding: 0.6rem 1.25rem;
+            border-radius: 8px;
+            font-weight: 600;
+            color: white;
+            background: var(--color-main);
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .main-button:hover {
+            opacity: 0.9;
+        }
+        
+        /* 紅色按鈕 (用於危險操作) */
+         .danger-button {
+            background-color: #ef4444; /* Red-500 */
+        }
+        .danger-button:hover {
+            background-color: #dc2626; /* Red-600 */
+        }
+        
+        /* 次要按鈕 */
+        .secondary-button {
+             padding: 0.6rem 1.25rem;
+            border-radius: 8px;
+            font-weight: 600;
+            color: var(--color-text);
+            background: #e5e7eb; /* Gray-200 */
+            transition: all 0.3s ease;
+        }
+        .secondary-button:hover {
+            background: #d1d5db; /* Gray-300 */
+        }
+
+        /* 排序按鈕 */
+        .sort-btn {
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            border: 1px solid #d1d5db; /* Gray-300 */
+            background-color: #ffffff;
+        }
+        .sort-btn:hover {
+            background-color: #f3f4f6; /* Gray-100 */
+        }
+        .sort-btn.selected {
+            background-color: var(--color-main);
+            color: white;
+            border-color: var(--color-main);
+        }
+        
+        /* Modal 彈窗 */
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background-color: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+        }
+        .modal-content {
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .hidden { display: none; }
+    </style>
+</head>
+<body class="min-h-screen">
+
+    <!-- 頂部 Header -->
+    <header class="w-full bg-white shadow-sm sticky top-0 z-40">
+        <div class="container mx-auto max-w-3xl px-4 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <i data-lucide="bar-chart-3" class="text-blue-500"></i>
+                <h1 class="text-xl md:text-2xl font-bold text-gray-800">地形測驗排行榜</h1>
+            </div>
+            <a href="./index.html" class="text-sm font-medium text-blue-600 hover:underline flex items-center gap-1">
+                <i data-lucide="arrow-left" class="w-4 h-4"></i> 返回地形測驗
+            </a>
+        </div>
+    </header>
+
+    <!-- 主內容區 -->
+    <main class="container mx-auto max-w-3xl px-4 mt-8">
+        <div class="card">
+            
+            <!-- 排序與清除 -->
+            <div class="flex flex-wrap justify-between items-center gap-4 mb-6">
+                <div class="flex gap-2">
+                    <span class="text-gray-700 font-medium my-auto">排序：</span>
+                    <button id="sort-score-btn" class="sort-btn selected">
+                        <i data-lucide="chevrons-down-up" class="inline-block w-4 h-4 -mt-1"></i> 分數
+                    </button>
+                    <button id="sort-name-btn" class="sort-btn">
+                        <i data-lucide="case-sensitive" class="inline-block w-4 h-4 -mt-1"></i> 姓名
+                    </button>
+                </div>
+                <button id="clear-leaderboard-btn" class="secondary-button text-red-600 hover:bg-red-100">
+                    <i data-lucide="trash-2" class="inline-block w-4 h-4 -mt-1"></i> 清除紀錄
+                </button>
+            </div>
+
+            <!-- 排行榜列表 -->
+            <div class="overflow-x-auto">
+                <table class="w-full min-w-[400px]">
+                    <thead>
+                        <tr class="border-b border-gray-200">
+                            <th class="p-3 text-left font-semibold text-gray-600 w-16">排名</th>
+                            <th class="p-3 text-left font-semibold text-gray-600">姓名</th>
+                            <th class="p-3 text-right font-semibold text-gray-600 w-24">分數</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leaderboard-body">
+                        <!-- 範例資料 (會被 JS 取代) -->
+                        <tr>
+                            <td class="p-3 font-bold text-lg text-blue-600">1</td>
+                            <td class="p-3 font-medium">王小明</td>
+                            <td class="p-3 text-right font-bold text-lg text-blue-600">100</td>
+                        </tr>
+                        <tr>
+                            <td class="p-3 font-bold text-lg text-gray-700">2</td>
+                            <td class="p-3 font-medium">陳同學</td>
+                            <td class="p-3 text-right font-bold text-lg text-gray-700">80</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <p id="no-data" class="text-center text-gray-500 py-8 hidden">
+                <i data-lucide="inbox" class="w-12 h-12 mx-auto text-gray-400 mb-2"></i>
+                目前沒有任何紀錄
+            </p>
+        </div>
+    </main>
+
+    <!-- Modal 彈窗 (確認清除) -->
+    <div id="password-modal" class="modal-backdrop hidden">
+        <div class="card modal-content w-11/12 max-w-sm p-6 text-center">
+            <i data-lucide="shield-alert" class="w-14 h-14 text-red-500 mx-auto mb-4"></i>
+            <h2 class="text-xl font-bold mb-3">確認清除？</h2>
+            <p class="text-gray-600 mb-5">
+                此操作將會刪除所有排行榜紀錄！<br>
+                請輸入密碼以確認 (預設：<b class="text-red-600">1234</b>)
+            </p>
+            <input type="password" id="password-input" class="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 mb-2" placeholder="請輸入密碼">
+            <p id="password-error" class="text-red-500 text-sm mb-4 hidden">密碼錯誤！</p>
+
+            <div class="flex justify-center gap-4 mt-2">
+                <button id="cancel-clear-btn" class="secondary-button">取消</button>
+                <button id="confirm-clear-btn" class="main-button danger-button">確認清除</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ===============
+        // 1. 狀態與設定
+        // ===============
+        const LEADERBOARD_KEY = 'landformQuizLeaderboard'; // 更改 key 以免與舊資料衝突
+        const CLEAR_PASSWORD = '1234'; // 清除紀錄的密碼
+        
+        let leaderboardData = [];
+        let leaderboardSortKey = 'score'; // 'score' or 'name'
+
+        // ===============
+        // 2. 取得 DOM 元素
+        // ===============
+        const $tbody = document.getElementById('leaderboard-body');
+        const $noData = document.getElementById('no-data');
+        const $sortScoreBtn = document.getElementById('sort-score-btn');
+        const $sortNameBtn = document.getElementById('sort-name-btn');
+        const $clearLeaderboardBtn = document.getElementById('clear-leaderboard-btn');
+        
+        const $passwordModal = document.getElementById('password-modal');
+        const $passwordInput = document.getElementById('password-input');
+        const $passwordError = document.getElementById('password-error');
+        const $cancelClearBtn = document.getElementById('cancel-clear-btn');
+        const $confirmClearBtn = document.getElementById('confirm-clear-btn');
+
+        // ===============
+        // 3. 函式定義
+        // ===============
+
+        // 讀取資料
+        function loadLeaderboard() {
+            const data = localStorage.getItem(LEADERBOARD_KEY);
+            leaderboardData = data ? JSON.parse(data) : [];
+        }
+
+        // 儲存資料
+        function saveLeaderboard() {
+            localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(leaderboardData));
+        }
+
+        // 渲染排行榜
+        function renderLeaderboard() {
+            // 排序
+            sortLeaderboard();
+
+            if (leaderboardData.length === 0) {
+                $tbody.innerHTML = '';
+                $noData.classList.remove('hidden');
+                return;
+            }
+
+            $noData.classList.add('hidden');
+            $tbody.innerHTML = '';
+            
+            leaderboardData.forEach((entry, index) => {
+                const rank = index + 1;
+                const tr = document.createElement('tr');
+                tr.className = 'border-b border-gray-100 last:border-b-0 hover:bg-blue-50';
+                
+                let rankColor = 'text-gray-700';
+                if (rank === 1) rankColor = 'text-yellow-500';
+                if (rank === 2) rankColor = 'text-gray-500';
+                if (rank === 3) rankColor = 'text-yellow-700';
+
+                tr.innerHTML = `
+                    <td class="p-3 font-bold text-lg ${rankColor}">${rank}</td>
+                    <td class="p-3 font-medium text-gray-800">${escapeHTML(entry.name)}</td>
+                    <td class="p-3 text-right font-bold text-lg ${rank === 1 ? 'text-blue-600' : 'text-gray-800'}">${entry.score}</td>
+                `;
+                $tbody.appendChild(tr);
+            });
+        }
+        
+        // 排序
+        function sortLeaderboard() {
+             leaderboardData.sort((a, b) => {
+                if (leaderboardSortKey === 'score') {
+                    // 分數高的在前面
+                    return b.score - a.score;
+                } else {
+                    // 姓名筆劃 (使用 localeCompare)
+                    return a.name.localeCompare(b.name, 'zh-TW');
+                }
+            });
+        }
+
+        // 顯示清除密碼彈窗
+        function showClearPasswordModal() {
+            $passwordInput.value = '';
+            $passwordError.classList.add('hidden');
+            $passwordModal.classList.remove('hidden');
+            $passwordInput.focus();
+        }
+
+        // 取消清除
+        function cancelClear() {
+            $passwordModal.classList.add('hidden');
+        }
+
+        // 驗證密碼並清除
+        function verifyPasswordAndClear() {
+            if ($passwordInput.value === CLEAR_PASSWORD) {
+                leaderboardData = [];
+                saveLeaderboard();
+                renderLeaderboard();
+                cancelClear();
+            } else {
+                $passwordError.classList.remove('hidden');
+                $passwordInput.focus();
+            }
+        }
+        
+        // HTML 特殊字元跳脫 (防XSS)
+        function escapeHTML(str) {
+            return str.replace(/[&<>'"]/g, 
+                tag => ({
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    "'": '&#39;',
+                    '"': '&quot;'
+                }[tag] || tag)
+            );
+        }
+
+        // ===============
+        // 4. 初始化與事件綁定
+        // ===============
+        document.addEventListener('DOMContentLoaded', () => {
+            loadLeaderboard();
+            
+            // 1. 檢查是否有來自 index.html 的新成績
+            const latestName = localStorage.getItem('latestName');
+            const latestScore = localStorage.getItem('latestScore');
+            
+            if (latestName && latestScore !== null) {
+                // 新增成績
+                leaderboardData.push({
+                    name: latestName,
+                    score: parseInt(latestScore),
+                    id: Date.now() // 給一個唯一ID
+                });
+                
+                // 清除暫存
+                localStorage.removeItem('latestName');
+                localStorage.removeItem('latestScore');
+                
+                // 儲存回排行榜
+                saveLeaderboard();
+            }
+
+            // 2. 綁定排序事件
+            $sortScoreBtn.addEventListener('click', () => {
+                leaderboardSortKey = 'score';
+                $sortScoreBtn.classList.add('selected');
+                $sortNameBtn.classList.remove('selected');
+                renderLeaderboard();
+            });
+            $sortNameBtn.addEventListener('click', () => {
+                leaderboardSortKey = 'name';
+                $sortNameBtn.classList.add('selected');
+                $sortScoreBtn.classList.remove('selected');
+                renderLeaderboard();
+            });
+
+            // 3. 綁定清除事件
+            $clearLeaderboardBtn.addEventListener('click', showClearPasswordModal);
+            
+            // 4. 綁定密碼 Modal 事件
+            $cancelClearBtn.addEventListener('click', cancelClear);
+            $confirmClearBtn.addEventListener('click', verifyPasswordAndClear);
+            
+            // 允許在密碼輸入框按 Enter 鍵確認
+            $passwordInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    verifyPasswordAndClear();
+                }
+            });
+
+            // 5. 首次渲染
+            renderLeaderboard();
+            lucide.createIcons(); // 確保所有 icon 都被渲染
+        });
+
+    </script>
+</body>
+</html>
