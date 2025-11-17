@@ -729,7 +729,7 @@ const galleryData = [
 
             // 更新進度
             $questionNumber.textContent = currentQuestionIndex + 1;
-            $currentScore.textContent = Math.round(score); // [!] 更新分數顯示
+            $currentScore.textContent = score;
             $progressBar.style.width = `${((currentQuestionIndex + 1) / questions.length) * 100}%`;
 
             // 載入題目和選項
@@ -802,28 +802,17 @@ const galleryData = [
             // 根據分數給予不同鼓勵
             if (finalScore >= 90) {
                 $resultMessage.textContent = "太厲害了，你是地形大師！";
-                // [FIX] 修改為使用 data-lucide 屬性
-                $resultIcon.setAttribute('data-lucide', 'award');
-                $resultIcon.className = 'text-yellow-500 w-16 h-16 mx-auto mb-4';
+                $resultIcon.innerHTML = lucide.icons.award.toSvg({ class: 'text-yellow-500 w-16 h-16' });
             } else if (finalScore >= 70) {
                 $resultMessage.textContent = "做得不錯！對地形有深入的了解！";
-                // [FIX] 修改為使用 data-lucide 屬性 (trendingUp -> trending-up)
-                $resultIcon.setAttribute('data-lucide', 'trending-up');
-                $resultIcon.className = 'text-green-500 w-16 h-16 mx-auto mb-4';
+                $resultIcon.innerHTML = lucide.icons.trendingUp.toSvg({ class: 'text-green-500 w-16 h-16' });
             } else if (finalScore >= 50) {
                 $resultMessage.textContent = "還不錯，再多看看圖鑑會更熟悉喔！";
-                // [FIX] 修改為使用 data-lucide 屬性
-                $resultIcon.setAttribute('data-lucide', 'thumbs-up');
-                $resultIcon.className = 'text-amber-500 w-16 h-16 mx-auto mb-4';
+                $resultIcon.innerHTML = lucide.icons.thumbsUp.toSvg({ class: 'text-blue-500 w-16 h-16' });
             } else {
                 $resultMessage.textContent = "別氣餒，多逛逛圖鑑，下次會更好！";
-                // [FIX] 修改為使用 data-lucide 屬性
-                $resultIcon.setAttribute('data-lucide', 'book-open');
-                $resultIcon.className = 'text-gray-500 w-16 h-16 mx-auto mb-4';
+                $resultIcon.innerHTML = lucide.icons.bookOpen.toSvg({ class: 'text-gray-500 w-16 h-16' });
             }
-            
-            // [FIX] 呼叫 createIcons() 來渲染剛剛設定的圖示
-            lucide.createIcons();
             
             // ⭐ 將成績儲存到 localStorage，以便排行榜頁面讀取
             localStorage.setItem('latestScore', finalScore);
@@ -879,4 +868,3 @@ const galleryData = [
     </script>
 </body>
 </html>
-
