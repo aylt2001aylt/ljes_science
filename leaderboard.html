@@ -174,12 +174,27 @@
         // ----------------------------------------------------
         // --- 全局 Firebase 變數與初始化 ---
         // ----------------------------------------------------
-        // 檢查並初始化 Firebase 變數 (這些變數由您的執行環境自動提供)
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+        // ⭐ 新增：您的自定義 Firebase 配置物件
+        const CUSTOM_FIREBASE_CONFIG = {
+            apiKey: "AIzaSyBobNJrmek6HcBRrgmaFEeoWX7P-mPTLUQ",
+            authDomain: "empyrean-kit-478605-s8.firebaseapp.com",
+            projectId: "empyrean-kit-478605-s8",
+            storageBucket: "empyrean-kit-478605-s8.firebasestorage.app",
+            messagingSenderId: "266858477654",
+            appId: "1:266858477654:web:9c1e4c12819a51ca6c63f7"
+        };
+        
+        // 檢查並初始化 Firebase 變數
+        const appId = CUSTOM_FIREBASE_CONFIG.projectId; // ⭐ 修正：使用自定義配置的 projectId 作為 appId
+        
+        // ⭐ 修正：直接使用自定義配置
+        const firebaseConfig = CUSTOM_FIREBASE_CONFIG;
+        
+        // 由於我們使用自定義配置，這裡的 initialAuthToken 仍然會從環境變數中取得
         const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
         
         // Firestore Collection Path (公共資料)
+        // 修正：使用自定義 appId 建立路徑
         const COLLECTION_PATH = `artifacts/${appId}/public/data/leaderboard_scores`;
 
         let app, db, auth;
@@ -204,20 +219,33 @@
             db = getFirestore(app);
             auth = getAuth(app);
             
+            // ⭐ 修正：在 Custom Token 認證失敗時，回退到匿名登入
             try {
                 if (initialAuthToken) {
+                    // 嘗試使用 Custom Token 進行認證 (這是錯誤發生的點)
                     await signInWithCustomToken(auth, initialAuthToken);
                 } else {
+                    // 如果沒有 Custom Token，則直接使用匿名登入
                     await signInAnonymously(auth);
                 }
-                userId = auth.currentUser?.uid || crypto.randomUUID();
-                isAuthReady = true;
-                console.log("Firebase Auth Ready. User ID:", userId);
-                return true;
             } catch (error) {
-                console.error("Firebase Authentication failed:", error);
-                return false;
+                // 如果 Custom Token 認證失敗 (例如 auth/configuration-not-found)
+                console.warn("Custom Token Sign-In failed, attempting anonymous fallback:", error);
+                try {
+                    // 改用匿名登入作為備援
+                    await signInAnonymously(auth);
+                } catch (anonError) {
+                    console.error("Anonymous Sign-In also failed:", anonError);
+                    // 如果匿名登入也失敗，則整個認證流程失敗
+                    return false;
+                }
             }
+
+            // 無論是 Custom Token 成功、或是備援的匿名登入成功，都繼續執行
+            userId = auth.currentUser?.uid || crypto.randomUUID();
+            isAuthReady = true;
+            console.log("Firebase Auth Ready. User ID:", userId);
+            return true;
         }
         
         // ----------------------------------------------------
