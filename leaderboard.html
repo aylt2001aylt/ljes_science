@@ -212,6 +212,7 @@
         async function initFirebaseAndAuth() {
             if (!firebaseConfig) {
                 console.error("Firebase config is missing.");
+                $loadingMsg.textContent = "初始化錯誤：Firebase 配置遺失。";
                 return false;
             }
 
@@ -219,30 +220,27 @@
             db = getFirestore(app);
             auth = getAuth(app);
             
-            // ⭐ 修正：在 Custom Token 認證失敗時，回退到匿名登入
+            // ⭐ 修正：新增容錯機制，即使 Auth 失敗，也允許連接 Firestore
             try {
-                if (initialAuthToken) {
-                    // 嘗試使用 Custom Token 進行認證 (這是錯誤發生的點)
-                    await signInWithCustomToken(auth, initialAuthToken);
-                } else {
-                    // 如果沒有 Custom Token，則直接使用匿名登入
-                    await signInAnonymously(auth);
-                }
+                // 執行匿名登入
+                await signInAnonymously(auth);
+                console.log("Firebase Auth using Anonymous Sign-In successful.");
+                userId = auth.currentUser?.uid; // 登入成功，使用 Firebase UID
             } catch (error) {
-                // 如果 Custom Token 認證失敗 (例如 auth/configuration-not-found)
-                console.warn("Custom Token Sign-In failed, attempting anonymous fallback:", error);
-                try {
-                    // 改用匿名登入作為備援
-                    await signInAnonymously(auth);
-                } catch (anonError) {
-                    console.error("Anonymous Sign-In also failed:", anonError);
-                    // 如果匿名登入也失敗，則整個認證流程失敗
-                    return false;
-                }
+                // 如果匿名登入失敗 (auth/configuration-not-found)
+                console.error("FATAL: Firebase Authentication failed (Anonymous Sign-In Error):", error);
+                
+                // ⭐ FALLBACK: 即使 Auth 失敗，也要嘗試連接 Firestore。
+                // 創建一個本地 UUID 作為 userId，這樣 Firestore 路徑仍然有效。
+                userId = crypto.randomUUID(); 
+                isAuthReady = true; // 設置為 Ready，允許 Firestore 邏輯執行
+                $loadingMsg.textContent = `認證失敗 (auth/configuration-not-found)。將使用本地 ID: ${userId} 繼續連接 Firestore。請確認 Firebase 專案已啟用「匿名登入」！`;
+                
+                // 返回 true，讓主程式可以繼續執行 Firestore 相關的邏輯
+                return true; 
             }
 
-            // 無論是 Custom Token 成功、或是備援的匿名登入成功，都繼續執行
-            userId = auth.currentUser?.uid || crypto.randomUUID();
+            // 成功登入的路徑
             isAuthReady = true;
             console.log("Firebase Auth Ready. User ID:", userId);
             return true;
@@ -300,7 +298,7 @@
                     name: params.name, 
                     score: parseInt(params.score), 
                     date: new Date().toLocaleDateString('zh-TW'),
-                    userId: userId, // 儲存使用者 ID
+                    userId: userId, // 儲存使用者 ID (可能為 Firebase UID 或本地 UUID)
                     // 修正：直接呼叫簡化後的 firebase_firestore.serverTimestamp()
                     timestamp: firebase_firestore.serverTimestamp() 
                 };
@@ -538,7 +536,8 @@
                 // 2. 啟動排行榜數據監聽
                 startLeaderboardListener();
             } else {
-                $loadingMsg.textContent = "無法連線至雲端資料庫，請檢查設定。";
+                // 如果認證失敗，錯誤訊息已在 initFirebaseAndAuth 內部更新
+                console.error("Authentication failed. Cannot start leaderboard listener.");
             }
 
             // 3. 綁定排序事件
