@@ -109,6 +109,11 @@
             <!-- 排行榜列表 -->
             <div id="leaderboard-list" class="space-y-3">
                 <!-- Leaderboard items injected by JS -->
+                <div id="loading-message" class="text-center text-lg text-gray-500 py-4 hidden">
+                    <!-- 載入訊息僅為防止閃爍，實際上 localstorage 載入很快 -->
+                    <i data-lucide="loader" class="w-6 h-6 animate-spin mr-2 inline-block"></i>
+                    載入成績中...
+                </div>
             </div>
             
             <p id="empty-leaderboard-msg" class="text-center text-lg text-gray-500 py-4 hidden">
@@ -129,7 +134,7 @@
         </section>
     </main>
     
-    <!-- ⭐ 新增：密碼驗證 Modal 視窗 -->
+    <!-- ⭐ 密碼驗證 Modal 視窗 -->
     <div id="password-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 z-50 flex items-center justify-center p-4 hidden transition-opacity">
         <div class="card w-full max-w-sm relative">
             <h3 class="text-xl font-bold mb-4 text-red-600 flex items-center">
@@ -166,7 +171,7 @@
         const $sortScoreBtn = document.getElementById('sort-score-btn');
         const $sortNameBtn = document.getElementById('sort-name-btn');
         const $clearLeaderboardBtn = document.getElementById('clear-leaderboard-btn');
-        // ⭐ 新增密碼 Modal 元素
+        // 密碼 Modal 元素
         const $passwordModal = document.getElementById('password-modal');
         const $passwordInput = document.getElementById('password-input');
         const $passwordError = document.getElementById('password-error');
@@ -175,10 +180,10 @@
         
         // 狀態
         let leaderboardSortKey = 'score'; // 'score' 或 'name'
-        let latestSubmission = null; // 儲存從 URL 帶入的最新成績
         
-        // ⭐ 密碼常數
-        const ADMIN_PASSWORD = '7772041';
+        // 密碼常數
+        const ADMIN_PASSWORD = 'aylt2001aylt';
+        const STORAGE_KEY = 'quiz_leaderboard';
 
         // --- 輔助函數 ---
 
@@ -196,19 +201,63 @@
 
         /** 從 localStorage 獲取成績列表 */
         function getScores() {
-            const scoresJson = localStorage.getItem('quiz_leaderboard');
+            const scoresJson = localStorage.getItem(STORAGE_KEY);
             return scoresJson ? JSON.parse(scoresJson) : [];
         }
 
-        /** 渲染排行榜 (不變) */
+        /** 將成績列表儲存到 localStorage */
+        function setScores(scores) {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(scores));
+        }
+
+        /** 處理新分數並儲存 */
+        function processNewScore(params) {
+            // 檢查是否為有效的成績參數
+            if (params.name && params.score && !isNaN(parseInt(params.score))) {
+                const scores = getScores();
+                
+                // 檢查是否已經有這個分數（防止重複儲存，雖然 ID 不同）
+                // 為了簡單起見，我們只依靠時間戳 ID 來保證唯一性
+                
+                const newEntry = { 
+                    id: Date.now(), // 唯一 ID (時間戳)
+                    name: params.name, 
+                    score: parseInt(params.score), 
+                    date: new Date().toLocaleDateString('zh-TW'),
+                };
+                scores.push(newEntry);
+                setScores(scores);
+                return newEntry;
+            }
+            return null;
+        }
+
+        /** 渲染排行榜 */
         function renderLeaderboard() {
-            const scores = getScores();
+            
+            // 處理 URL 參數中的最新成績（用於高亮）
+            const params = getUrlParams();
+            let latestEntryId = null;
+            
+            // 檢查 URL 中是否有新分數，如果有，則加入並儲存
+            if (params.name && params.score) {
+                const newEntry = processNewScore(params);
+                if (newEntry) {
+                    latestEntryId = newEntry.id;
+                }
+            }
+
+            let scores = getScores();
             
             // 排序邏輯
             if (leaderboardSortKey === 'score') {
-                scores.sort((a, b) => b.score - a.score); // 分數由高到低
+                // 分數由高到低，分數相同時使用 ID (時間戳) 確保排序穩定性
+                scores.sort((a, b) => {
+                    if (b.score !== a.score) return b.score - a.score;
+                    return a.id - b.id; 
+                });
             } else if (leaderboardSortKey === 'name') {
-                // 姓名筆劃/字母排序 (使用 localeCompare 進行中文排序)
+                // 姓名筆劃/字母排序
                 scores.sort((a, b) => a.name.localeCompare(b.name, 'zh-TW', { sensitivity: 'base' }));
             }
 
@@ -216,10 +265,16 @@
             
             if (scores.length === 0) {
                 $emptyLeaderboardMsg.classList.remove('hidden');
+                // 清除 URL 參數
+                try {
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                } catch (e) {
+                    console.warn("無法替換歷史狀態 (replaceState):", e);
+                }
                 return;
             }
             $emptyLeaderboardMsg.classList.add('hidden');
-
+            
             scores.forEach((entry, index) => {
                 const rank = index + 1;
                 let rankText = rank;
@@ -237,10 +292,7 @@
                 }
                 
                 // 判斷是否為本次提交的成績
-                const isLatest = latestSubmission && 
-                                entry.name === latestSubmission.name && 
-                                entry.score === latestSubmission.score &&
-                                (entry.id == latestSubmission.id || index === 0); 
+                const isLatest = latestEntryId !== null && entry.id === latestEntryId;
 
                 const item = document.createElement('div');
                 item.className = `flex flex-col p-4 border rounded-lg shadow-md transition-all ${isLatest ? 'bg-yellow-50 border-yellow-400 scale-[1.02] ring-2 ring-yellow-500' : 'bg-white border-gray-100'}`;
@@ -260,10 +312,20 @@
                 `;
                 $leaderboardList.appendChild(item);
             });
+            
+            // 清除 URL 參數，避免重新整理時重複儲存或錯誤高亮
+            if (latestEntryId) {
+                try {
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                } catch (e) {
+                    console.warn("無法在儲存後替換歷史狀態 (replaceState):", e);
+                }
+            }
+            
             lucide.createIcons();
         }
 
-        // ⭐ 修改：清除排行榜，改為顯示密碼 Modal
+        /** 顯示密碼 Modal */
         function showClearPasswordModal() {
             $passwordInput.value = '';
             $passwordError.classList.add('hidden');
@@ -271,28 +333,30 @@
             $passwordInput.focus();
         }
 
-        // ⭐ 新增：取消清除
+        /** 取消清除 */
         function cancelClear() {
             $passwordModal.classList.add('hidden');
         }
         
-        // ⭐ 新增：密碼驗證邏輯
+        /** 密碼驗證邏輯 (localStorage 刪除) */
         function verifyPasswordAndClear() {
             const enteredPassword = $passwordInput.value.trim();
+            $passwordError.classList.add('hidden');
             
             if (enteredPassword === ADMIN_PASSWORD) {
                 // 驗證成功，執行清除操作
-                localStorage.removeItem('quiz_leaderboard');
+                localStorage.removeItem(STORAGE_KEY);
                 
                 // 隱藏 Modal
                 $passwordModal.classList.add('hidden');
                 
-                // 重新渲染並清除 URL 參數 (如果有的話)
-                window.history.pushState({}, document.title, window.location.pathname);
-                latestSubmission = null;
+                // 重新渲染
                 renderLeaderboard();
+                console.log("All scores successfully cleared from localStorage.");
+
             } else {
                 // 驗證失敗
+                $passwordError.textContent = "密碼錯誤，請再試一次。";
                 $passwordError.classList.remove('hidden');
                 $passwordInput.focus();
             }
@@ -300,17 +364,7 @@
         
         // --- 初始化與事件監聽器 ---
         document.addEventListener('DOMContentLoaded', () => {
-            // 1. 檢查 URL 參數以取得最新提交的成績 (不變)
-            const params = getUrlParams();
-            if (params.latestName && params.latestScore) {
-                latestSubmission = { 
-                    name: params.latestName, 
-                    score: parseInt(params.latestScore),
-                    id: Date.now() 
-                };
-            }
-
-            // 2. 綁定排序事件 (不變)
+            // 1. 綁定排序事件
             $sortScoreBtn.addEventListener('click', () => {
                 leaderboardSortKey = 'score';
                 $sortScoreBtn.classList.add('selected');
@@ -324,10 +378,10 @@
                 renderLeaderboard();
             });
 
-            // 3. 綁定清除事件 (修改：觸發密碼 Modal)
+            // 2. 綁定清除事件 (觸發密碼 Modal)
             $clearLeaderboardBtn.addEventListener('click', showClearPasswordModal);
             
-            // 4. 綁定密碼 Modal 事件
+            // 3. 綁定密碼 Modal 事件
             $cancelClearBtn.addEventListener('click', cancelClear);
             $confirmClearBtn.addEventListener('click', verifyPasswordAndClear);
             
@@ -338,11 +392,10 @@
                 }
             });
 
-            // 5. 首次渲染
+            // 4. 首次渲染 (包含處理 URL 中的新分數並儲存)
             renderLeaderboard();
             lucide.createIcons(); // 確保所有 icon 都被渲染
         });
     </script>
 </body>
 </html>
-
