@@ -33,7 +33,7 @@
             transition: transform 0.2s, box-shadow 0.2s;
         }
 
-        /* ------------------- 圖鑑模式樣式 ------------------- */
+        /* ------------------- 圖鑑/排行榜模式樣式 ------------------- */
         .keyword-btn {
             display: inline-flex;
             align-items: center;
@@ -115,6 +115,15 @@
             box-shadow: 0 0 20px #fbbf24, 0 0 40px #f59e0b; /* Amber 400/500 */
             border: 4px solid #f59e0b;
         }
+        
+        /* 排行榜分數條樣式 */
+        .score-bar {
+            background-color: var(--color-main);
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.5s ease-out;
+            min-width: 2%; 
+        }
     </style>
 </head>
 <body class="min-h-screen">
@@ -135,13 +144,16 @@
 
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8 space-y-10">
 
-        <!-- 模式切換區 -->
+        <!-- 模式切換區 (新增排行榜按鈕) -->
         <div class="flex justify-center mb-6">
             <button id="mode-gallery-btn" class="px-6 py-2 rounded-l-lg font-semibold transition-colors border border-r-0" data-mode="gallery">
                 <i data-lucide="compass" class="w-4 h-4 mr-1 inline-block"></i> 圖鑑篩選
             </button>
-            <button id="mode-quiz-btn" class="px-6 py-2 rounded-r-lg font-semibold transition-colors border" data-mode="quiz">
+            <button id="mode-quiz-btn" class="px-6 py-2 font-semibold transition-colors border" data-mode="quiz">
                 <i data-lucide="scroll-text" class="w-4 h-4 mr-1 inline-block"></i> 測驗挑戰
+            </button>
+            <button id="mode-leaderboard-btn" class="px-6 py-2 rounded-r-lg font-semibold transition-colors border border-l-0" data-mode="leaderboard">
+                <i data-lucide="trophy" class="w-4 h-4 mr-1 inline-block"></i> 排行榜
             </button>
         </div>
 
@@ -263,7 +275,7 @@
                     <p id="result-message" class="text-lg text-gray-600 font-medium"></p>
                 </div>
 
-                <!-- ⭐ 查看排行榜按鈕 (主按鈕) -->
+                <!-- ⭐ 查看排行榜按鈕 (主按鈕) - 現改為切換模式 -->
                 <button id="view-leaderboard-btn" class="main-button mt-8 w-full">
                     <i data-lucide="trophy" class="w-5 h-5 mr-2 inline-block"></i>
                     查看排行榜
@@ -272,6 +284,34 @@
                 <button id="restart-quiz-btn" class="mt-4 px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors">
                     <i data-lucide="rotate-ccw" class="w-4 h-4 mr-1 inline-block"></i>
                     重新開始測驗
+                </button>
+            </section>
+        </div>
+
+        <!-- 3. 排行榜模式 (Leaderboard Mode) - 簡化後的區塊 -->
+        <div id="leaderboard-mode" class="hidden max-w-3xl mx-auto">
+            <section class="card space-y-6">
+                <h2 class="text-2xl font-bold mb-4 flex items-center text-gray-700">
+                    <i data-lucide="trophy" class="w-6 h-6 mr-2 text-yellow-500"></i>
+                    測驗成績排行榜
+                </h2>
+                <!-- UPDATE: 說明改為分數與時間為準 -->
+                <p class="text-gray-600 mb-6">排行榜以分數高低為標準，分數相同時，以完成測驗時間較早者優先。</p>
+                
+                <!-- REMOVE: 排序選擇按鈕 -->
+
+                <!-- 排行榜列表 -->
+                <div id="leaderboard-list" class="space-y-3">
+                    <!-- Leaderboard items injected by JS -->
+                </div>
+                
+                <p id="empty-leaderboard-msg" class="text-center text-lg text-gray-500 py-4 hidden">
+                    目前還沒有成績，趕快去挑戰測驗吧！
+                </p>
+                
+                <button id="clear-leaderboard-btn" class="mt-6 px-4 py-2 text-sm font-medium text-red-500 hover:text-red-700 transition-colors">
+                    <i data-lucide="trash-2" class="w-4 h-4 mr-1 inline-block"></i>
+                    清除所有紀錄
                 </button>
             </section>
         </div>
@@ -287,6 +327,31 @@
             <!-- Modal Content Injected by JS -->
         </div>
     </div>
+    
+    <!-- ⭐ 密碼驗證 Modal 視窗 (for clear) -->
+    <div id="password-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 z-50 flex items-center justify-center p-4 hidden transition-opacity">
+        <div class="card w-full max-w-sm relative">
+            <h3 class="text-xl font-bold mb-4 text-red-600 flex items-center">
+                <i data-lucide="lock" class="w-5 h-5 mr-2"></i>
+                需要管理員密碼
+            </h3>
+            <p class="text-gray-600 mb-4">請輸入密碼以確認清除所有排行榜紀錄。</p>
+
+            <input type="password" id="password-input" placeholder="密碼" class="w-full p-3 mb-4 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors">
+            
+            <p id="password-error" class="text-red-500 text-sm mb-4 hidden">密碼錯誤，請再試一次。</p>
+
+            <div class="flex justify-end space-x-3">
+                <button id="cancel-clear-btn" class="px-4 py-2 text-sm font-medium text-gray-500 hover:bg-gray-100 rounded-lg">
+                    取消
+                </button>
+                <button id="confirm-clear-btn" class="px-4 py-2 text-sm font-medium main-button bg-red-500 hover:bg-red-600 shadow-md shadow-red-300">
+                    確認清除
+                </button>
+            </div>
+        </div>
+    </div>
+
 
     <!-- 頁尾（Footer） -->
     <footer class="mt-10 py-4 border-t border-gray-200 text-center text-gray-500 text-sm bg-white shadow-inner">
@@ -296,31 +361,24 @@
     <script>
         // --- 數據定義 ---
         const MINERALS = [
-            // 礦石 (Minerals)
             { id: 'quartz', name: '石英', engName: 'Quartz', type: '礦物', color: ['白色', '灰色', '透明'], features: ['礦物', '白色', '灰色', '透明', '可刮玻璃', '玻璃光澤', '有結晶'], habitat: '常見於花崗岩中，是地殼中含量第二多的礦物。', usage: '電子元件、玻璃原料、寶石', imageUrl: 'images/Quartz.png' },
             { id: 'biotite', name: '黑雲母', engName: 'Biotite', type: '礦物', color: ['黑色', '深棕色'], features: ['礦物', '黑色', '深棕色', '片狀剝落', '玻璃光澤', '有層狀構造'], habitat: '廣泛分佈於火成岩和變質岩中。', usage: '絕緣材料', imageUrl: 'images/Biotite.png' },
             { id: 'calcite', name: '方解石', engName: 'Calcite', type: '礦物', color: ['白色', '透明'], features: ['礦物', '白色', '透明', '遇酸起泡', '玻璃光澤', '有結晶', '菱形解理'], habitat: '許多岩石和鐘乳石的主要成分。', usage: '光學儀器、水泥原料', imageUrl: 'images/Calcite.png' },
-            // ⭐ 變更：硫磺的特徵 '火山產物' 改為 '火山噴發口周圍'
             { id: 'sulfur', name: '硫磺', engName: 'Sulfur', type: '礦物', color: ['黃色'], features: ['礦物', '黃色', '火山噴發口周圍', '蠟狀光澤', '易燃'], habitat: '主要產於火山活動區域，如陽明山。', usage: '工業原料、藥用', imageUrl: 'images/Sulfur.png' },
             { id: 'talc', name: '滑石', engName: 'Talc', type: '礦物', color: ['白色', '淺綠色'], features: ['礦物', '白色', '淺綠色', '皂感', '珍珠光澤'], habitat: '主要由變質作用形成。', usage: '化妝品、塗料、雕刻', imageUrl: 'images/Talc.png' },
             { id: 'muscovite', name: '白雲母', engName: 'Muscovite', type: '礦物', color: ['透明', '銀白色'], features: ['礦物', '透明', '銀白色', '片狀剝落', '珍珠光澤', '有層狀構造'], habitat: '常見於花崗岩和片麻岩中。', usage: '絕緣材料、裝飾', imageUrl: 'images/Muscovite.png' },
             { id: 'graphite', name: '石墨', engName: 'Graphite', type: '礦物', color: ['黑色', '灰色'], features: ['礦物', '黑色', '灰色', '金屬光澤', '有條痕', '可導電'], habitat: '由變質作用形成，是碳的同素異形體。', usage: '鉛筆、潤滑劑、電池', imageUrl: 'images/Graphite.png' },
-
-            // 岩石 (Rocks)
             { id: 'andesite', name: '安山岩', engName: 'Andesite', type: '火成岩', color: ['灰色', '黑色'], features: ['火成岩', '灰色', '黑色', '台灣常見', '可刮玻璃'], habitat: '台灣大屯山、觀音山等火山地區常見的火山岩。', usage: '建築石材、路基', imageUrl: 'images/Andesite.png' },
             { id: 'granite', name: '花崗岩', engName: 'Granite', type: '火成岩', color: ['灰色', '白色', '黑色', '粉紅'], features: ['火成岩', '灰色', '白色', '黑色', '粉紅', '深層形成', '有結晶', '可刮玻璃'], habitat: '台灣東部山區常見的深層火成岩。', usage: '建築石材、雕刻', imageUrl: 'images/Granite.png' },
             { id: 'basalt', name: '玄武岩', engName: 'Basalt', type: '火成岩', color: ['黑色', '深灰色'], features: ['火成岩', '黑色', '深灰色', '火山噴出', '蜂窩狀'], habitat: '台灣離島（如澎湖）常見的噴出火成岩。', usage: '鋪路石、人造纖維', imageUrl: 'images/Basalt.png' },
-
             { id: 'limestone', name: '石灰岩', engName: 'Limestone', type: '沉積岩', color: ['灰色', '白色', '米黃'], features: ['沉積岩', '灰色', '白色', '米黃', '遇酸起泡', '有層狀構造', '由生物遺骸組成'], habitat: '主要由海洋生物遺骸形成，台灣西部有分佈。', usage: '水泥原料、建築', imageUrl: 'images/Limestone.png' },
             { id: 'shale', name: '頁岩', engName: 'Shale', type: '沉積岩', color: ['灰色', '黑色'], features: ['沉積岩', '灰色', '黑色', '有層狀構造', '片狀剝落'], habitat: '台灣西部山區常見，由泥漿壓實而成。', usage: '製磚、水泥', imageUrl: 'images/Shale.png' },
             { id: 'sandstone', name: '砂岩', engName: 'Sandstone', type: '沉積岩', color: ['黃色', '褐色', '紅色'], features: ['沉積岩', '黃色', '褐色', '紅色', '有層狀構造', '砂粒組合'], habitat: '台灣北部和西部山區常見。', 'usage': '建築石材、磨料', imageUrl: 'images/Sandstone.png' },
-
             { id: 'marble', name: '大理岩', engName: 'Marble', type: '變質岩', color: ['白色', '灰色', '雜色'], features: ['變質岩', '白色', '灰色', '雜色', '有結晶', '遇酸起泡'], habitat: '台灣東部（花蓮）常見，由石灰岩變質而成。', usage: '高級裝飾材料、雕刻', imageUrl: 'images/Marble.png' },
             { id: 'slate', name: '板岩', engName: 'Slate', type: '變質岩', color: ['黑色', '灰色'], features: ['變質岩', '黑色', '灰色', '片狀剝落', '可劈裂', '有層狀構造'], habitat: '台灣中部山區常見，由頁岩或泥岩變質而成。', 'usage': '屋瓦、石板', imageUrl: 'images/Slate.png' },
             { id: 'gneiss', name: '片麻岩', engName: 'Gneiss', type: '變質岩', color: ['雜色'], features: ['變質岩', '雜色', '帶狀構造', '有結晶'], habitat: '常見於變質程度較高的地區。', usage: '建築石材', imageUrl: 'images/Gneiss.png' }
         ];
 
-        // 關鍵字列表 (用於圖鑑篩選 UI)
         const KEYWORDS = {
             '顏色': ['白色', '黑色', '灰色', '黃色', '透明', '銀白色', '粉紅', '深棕色', '淺綠色', '褐色', '紅色', '米黃', '雜色'],
             '特徵': [
@@ -328,11 +386,10 @@
                 '金屬光澤', '玻璃光澤', '珍珠光澤', '蠟狀光澤',
                 '片狀剝落', '可導電', '皂感', '有條痕',
                 '火成岩', '沉積岩', '變質岩', '礦物',
-                '蜂窩狀', '帶狀構造', '由生物遺骸組成', '砂粒組合', '火山噴發口周圍', '可劈裂', '深層形成', '菱形解理', '台灣常見' // ⭐ 變更：'火山產物' 改為 '火山噴發口周圍'
+                '蜂窩狀', '帶狀構造', '由生物遺骸組成', '砂粒組合', '火山噴發口周圍', '可劈裂', '深層形成', '菱形解理', '台灣常見'
             ]
         };
 
-        // 測驗邏輯所需的所有特徵和用途集合
         const allQuizOptionsSet = new Set();
         MINERALS.forEach(m => {
             m.features.forEach(f => allQuizOptionsSet.add(f));
@@ -349,17 +406,24 @@
         let currentQuestionIndex = 0;
         let userAnswers = [];
         let score = 0;
+        
+        // 排行榜狀態變數
+        const ADMIN_PASSWORD = 'aylt2001aylt';
+        const STORAGE_KEY = 'quiz_leaderboard';
 
-        // --- DOM 元素快取 (略) ---
+        // --- DOM 元素快取 ---
         const $date = document.getElementById('current-date');
         const $headerTitle = document.getElementById('header-title');
         const $headerSubtitle = document.getElementById('header-subtitle');
         const $headerIcon = document.getElementById('header-icon');
         const $modeGalleryBtn = document.getElementById('mode-gallery-btn');
         const $modeQuizBtn = document.getElementById('mode-quiz-btn');
+        const $modeLeaderboardBtn = document.getElementById('mode-leaderboard-btn');
         const $galleryMode = document.getElementById('gallery-mode');
         const $quizMode = document.getElementById('quiz-mode');
+        const $leaderboardMode = document.getElementById('leaderboard-mode');
 
+        // 圖鑑模式元素
         const $colorKeywords = document.getElementById('color-keywords');
         const $featureKeywords = document.getElementById('feature-keywords');
         const $clearBtn = document.getElementById('clear-keywords-btn');
@@ -371,6 +435,7 @@
         const $filterPrompt = document.getElementById('filter-prompt-message');
         const $closeModalBtnTop = document.getElementById('close-modal-btn-top');
 
+        // 測驗模式元素
         const $startScreen = document.getElementById('start-screen');
         const $quizScreen = document.getElementById('quiz-screen');
         const $resultScreen = document.getElementById('result-screen');
@@ -385,9 +450,20 @@
         const $finalScore = document.getElementById('final-score');
         const $resultMessage = document.getElementById('result-message');
         const $restartBtn = document.getElementById('restart-quiz-btn');
-        const $viewLeaderboardBtn = document.getElementById('view-leaderboard-btn'); // ⭐ 新增
-        const $scoreDisplayBox = document.getElementById('score-display-box'); // ⭐ 新增
+        const $viewLeaderboardBtn = document.getElementById('view-leaderboard-btn');
+        const $scoreDisplayBox = document.getElementById('score-display-box');
 
+        // 排行榜模式元素 (不再需要排序按鈕)
+        const $leaderboardList = document.getElementById('leaderboard-list');
+        const $emptyLeaderboardMsg = document.getElementById('empty-leaderboard-msg');
+        const $clearLeaderboardBtn = document.getElementById('clear-leaderboard-btn');
+        
+        // 密碼 Modal 元素
+        const $passwordModal = document.getElementById('password-modal');
+        const $passwordInput = document.getElementById('password-input');
+        const $passwordError = document.getElementById('password-error');
+        const $confirmClearBtn = document.getElementById('confirm-clear-btn');
+        const $cancelClearBtn = document.getElementById('cancel-clear-btn');
 
         // --- 輔助函數 ---
 
@@ -404,90 +480,171 @@
             window.alert(message);
         }
 
-        /** ⭐ 新增：創建滿分紙屑特效 */
+        /** 創建滿分紙屑特效 */
         function createSparkles(container, count = 20) {
-            // 清除之前的特效
             container.querySelectorAll('.confetti-star').forEach(el => el.remove());
 
             for (let i = 0; i < count; i++) {
                 const star = document.createElement('div');
                 star.className = 'confetti-star';
-                
-                // 隨機位置
                 const x = Math.random() * 100;
                 const y = Math.random() * 100;
                 star.style.left = `${x}%`;
                 star.style.top = `${y}%`;
-                
-                // 隨機大小和延遲
                 const size = Math.random() * 10 + 5;
                 star.style.width = `${size}px`;
                 star.style.height = `${size}px`;
                 star.style.animationDelay = `${Math.random() * 0.5}s`;
-                
                 container.appendChild(star);
             }
         }
         
-        // --- 核心邏輯變動 ---
-
-        /** 計算分數並顯示結果畫面 (取消自動跳轉) */
-        function submitQuiz() {
-            score = 0;
-            quizQuestions.forEach(q => {
-                if (q.userSelection === q.correctAnswer) {
-                    score += 10;
-                }
-            });
-
-            $resultName.textContent = studentName;
-            $finalScore.textContent = score;
-            
-            // 清除特效和光芒
-            $scoreDisplayBox.classList.remove('perfect-score-glow');
-            $scoreDisplayBox.querySelectorAll('.confetti-star').forEach(el => el.remove());
-
-            let message = '';
-            if (score === 100) {
-                message = '🎉 滿分！你是岩石與礦物的超級大師！點擊「查看排行榜」登記你的傲人成績！';
-                // ⭐ 應用滿分特效
-                $scoreDisplayBox.classList.add('perfect-score-glow');
-                createSparkles($scoreDisplayBox, 20);
-            } else if (score >= 70) {
-                message = '👍 表現很不錯！你已經掌握了大部分常見岩石與礦物的辨識方法。';
-            } else if (score >= 40) {
-                message = '🤔 還有進步空間喔！建議可以回到圖鑑頁面再複習一次特徵資訊。';
-            } else {
-                message = '💪 沒關係，多加練習一定會進步！地球科學的奧秘等你來發掘。';
-            }
-            $resultMessage.textContent = message;
-
-            showQuizScreen('result-screen');
-
-            // ⭐ 將成績數據存入按鈕的 data 屬性，等待用戶點擊
-            $viewLeaderboardBtn.setAttribute('data-name', studentName);
-            $viewLeaderboardBtn.setAttribute('data-score', score);
+        /** 格式化時間 (時:分:秒) */
+        function formatTime(timestamp) {
+            if (!timestamp) return 'N/A';
+            const date = new Date(timestamp);
+            return date.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
         }
 
-        // --- 模式切換邏輯 (不變) ---
+        // --- 排行榜數據操作 (LocalStorage) ---
+
+        /** 從 localStorage 獲取成績列表 */
+        function getScores() {
+            const scoresJson = localStorage.getItem(STORAGE_KEY);
+            return scoresJson ? JSON.parse(scoresJson) : [];
+        }
+
+        /** 將新成績加入列表並儲存到 localStorage */
+        function addScore(name, scoreValue) {
+            if (!name || isNaN(scoreValue)) return;
+            
+            const scores = getScores();
+            const newEntry = { 
+                id: Date.now(), // 唯一 ID (時間戳)
+                name: name, 
+                score: Math.max(0, Math.min(100, scoreValue)), 
+                date: new Date().toLocaleDateString('zh-TW'),
+                timestamp: Date.now()
+            };
+            scores.push(newEntry);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(scores));
+        }
+
+        /** 渲染排行榜 (固定分數/時間排序) */
+        function renderLeaderboard() {
+            let scores = getScores();
+
+            // 排序邏輯：分數高到低，分數相同時時間戳小（時間早）的在前
+            scores.sort((a, b) => {
+                if (b.score !== a.score) return b.score - a.score;
+                return a.timestamp - b.timestamp; 
+            });
+
+            $leaderboardList.innerHTML = '';
+            
+            if (scores.length === 0) {
+                $emptyLeaderboardMsg.classList.remove('hidden');
+                return;
+            }
+            $emptyLeaderboardMsg.classList.add('hidden');
+            
+            scores.forEach((entry, index) => {
+                const rank = index + 1;
+                let rankText = rank;
+                let rankColor = 'text-gray-500';
+                
+                if (rank === 1) {
+                    rankText = '🥇';
+                    rankColor = 'text-yellow-500';
+                } else if (rank === 2) {
+                    rankText = '🥈';
+                    rankColor = 'text-gray-400';
+                } else if (rank === 3) {
+                    rankText = '🥉';
+                    rankColor = 'text-amber-700';
+                }
+                
+                const item = document.createElement('div');
+                item.className = `flex flex-col p-4 border rounded-lg shadow-md transition-all bg-white border-gray-100`;
+                item.innerHTML = `
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="flex items-center space-x-3">
+                            <span class="text-2xl font-black ${rankColor}">${rankText}</span>
+                            <!-- UPDATE: 保留姓名顯示 -->
+                            <span class="text-xl font-bold text-gray-800">${entry.name}</span>
+                        </div>
+                        <span class="text-3xl font-extrabold text-emerald-600">${entry.score} <span class="text-lg font-normal">分</span></span>
+                    </div>
+                    <!-- 分數條 -->
+                    <div class="w-full bg-gray-100 h-2 rounded-md overflow-hidden">
+                        <div class="score-bar" style="width: ${entry.score}%;"></div>
+                    </div>
+                    <!-- UPDATE: 增加完成測驗時間 (時:分:秒) -->
+                    <p class="text-xs text-right text-gray-500 mt-1">
+                        完成時間: ${formatTime(entry.timestamp)} (日期: ${entry.date})
+                    </p>
+                `;
+                $leaderboardList.appendChild(item);
+            });
+            lucide.createIcons();
+        }
+
+        /** 顯示密碼 Modal */
+        function showClearPasswordModal() {
+            $passwordInput.value = '';
+            $passwordError.classList.add('hidden');
+            $passwordModal.classList.remove('hidden');
+            $passwordInput.focus();
+        }
+
+        /** 取消清除 */
+        function cancelClear() {
+            $passwordModal.classList.add('hidden');
+        }
+        
+        /** 密碼驗證邏輯 (localStorage 刪除) */
+        function verifyPasswordAndClear() {
+            const enteredPassword = $passwordInput.value.trim();
+            $passwordError.classList.add('hidden');
+            
+            if (enteredPassword === ADMIN_PASSWORD) {
+                localStorage.removeItem(STORAGE_KEY);
+                $passwordModal.classList.add('hidden');
+                renderLeaderboard();
+                alert("排行榜紀錄已成功清除！"); 
+            } else {
+                $passwordError.textContent = "密碼錯誤，請再試一次。";
+                $passwordError.classList.remove('hidden');
+                $passwordInput.focus();
+            }
+        }
+
+        // --- 核心模式切換邏輯 ---
 
         /** 切換主應用程式模式 */
         function showAppMode(mode) {
             currentMode = mode;
             $galleryMode.classList.add('hidden');
             $quizMode.classList.add('hidden');
+            $leaderboardMode.classList.add('hidden');
 
-            $modeGalleryBtn.classList.remove('bg-emerald-500', 'text-white', 'border-emerald-500', 'bg-white', 'text-gray-700', 'border-gray-300');
-            $modeQuizBtn.classList.remove('bg-emerald-500', 'text-white', 'border-emerald-500', 'bg-white', 'text-gray-700', 'border-gray-300');
-            
-            $modeGalleryBtn.classList.add('bg-white', 'text-gray-700', 'border-gray-300');
-            $modeQuizBtn.classList.add('bg-white', 'text-gray-700', 'border-gray-300');
+            const allModeButtons = [$modeGalleryBtn, $modeQuizBtn, $modeLeaderboardBtn];
+
+            allModeButtons.forEach(btn => {
+                if (btn) btn.classList.remove('bg-emerald-500', 'text-white', 'border-emerald-500');
+                if (btn) btn.classList.add('bg-white', 'text-gray-700', 'border-gray-300');
+            });
+
+            // 調整邊界樣式
+            $modeGalleryBtn.classList.remove('border-r-0');
+            $modeQuizBtn.classList.remove('border-l-0', 'border-r-0');
+            $modeLeaderboardBtn.classList.remove('border-l-0');
 
             if (mode === 'gallery') {
                 $galleryMode.classList.remove('hidden');
                 $modeGalleryBtn.classList.add('bg-emerald-500', 'text-white', 'border-emerald-500');
-                $modeQuizBtn.classList.remove('rounded-r-lg');
                 $modeQuizBtn.classList.add('border-l-0');
+                $modeLeaderboardBtn.classList.add('border-l-0');
                 $headerTitle.textContent = '台灣岩石與礦物小幫手';
                 $headerSubtitle.textContent = '透過關鍵字篩選，找出你正在尋找的岩石或礦物！';
                 $headerIcon.setAttribute('data-lucide', 'gem');
@@ -495,14 +652,22 @@
             } else if (mode === 'quiz') {
                 $quizMode.classList.remove('hidden');
                 $modeQuizBtn.classList.add('bg-emerald-500', 'text-white', 'border-emerald-500');
-                $modeGalleryBtn.classList.remove('rounded-l-lg');
                 $modeGalleryBtn.classList.add('border-r-0');
+                $modeLeaderboardBtn.classList.add('border-l-0');
                 $headerTitle.textContent = '岩石與礦物特徵測驗';
                 $headerSubtitle.textContent = '測試你對台灣常見岩石與礦物「特徵與用途」的認識！';
                 $headerIcon.setAttribute('data-lucide', 'scroll-text');
                 showQuizScreen('start-screen');
+            } else if (mode === 'leaderboard') { 
+                $leaderboardMode.classList.remove('hidden');
+                $modeLeaderboardBtn.classList.add('bg-emerald-500', 'text-white', 'border-emerald-500');
+                $modeQuizBtn.classList.add('border-r-0');
+                $headerTitle.textContent = '測驗成績排行榜';
+                $headerSubtitle.textContent = '查看挑戰成果並比較成績！';
+                $headerIcon.setAttribute('data-lucide', 'trophy');
+                renderLeaderboard(); // 渲染排行榜
             }
-            lucide.createIcons(); // 重新渲染 icon
+            lucide.createIcons();
         }
 
         /** 圖鑑/測驗邏輯 (未變動函數) **/
@@ -730,6 +895,45 @@
                 submitQuiz();
             }
         }
+        
+        // --- 測驗完成與排行榜 ---
+
+        /** 計算分數、儲存成績並顯示結果畫面 (取消自動跳轉) */
+        function submitQuiz() {
+            score = 0;
+            quizQuestions.forEach(q => {
+                if (q.userSelection === q.correctAnswer) {
+                    score += 10;
+                }
+            });
+            
+            // 自動儲存成績到 localStorage
+            addScore(studentName, score);
+
+            $resultName.textContent = studentName;
+            $finalScore.textContent = score;
+            
+            // 清除特效和光芒
+            $scoreDisplayBox.classList.remove('perfect-score-glow');
+            $scoreDisplayBox.querySelectorAll('.confetti-star').forEach(el => el.remove());
+
+            let message = '';
+            if (score === 100) {
+                message = '🎉 滿分！你是岩石與礦物的超級大師！點擊「查看排行榜」登記你的傲人成績！';
+                // 應用滿分特效
+                $scoreDisplayBox.classList.add('perfect-score-glow');
+                createSparkles($scoreDisplayBox, 20);
+            } else if (score >= 70) {
+                message = '👍 表現很不錯！你已經掌握了大部分常見岩石與礦物的辨識方法。';
+            } else if (score >= 40) {
+                message = '🤔 還有進步空間喔！建議可以回到圖鑑頁面再複習一次特徵資訊。';
+            } else {
+                message = '💪 沒關係，多加練習一定會進步！地球科學的奧秘等你來發掘。';
+            }
+            $resultMessage.textContent = message;
+
+            showQuizScreen('result-screen');
+        }
 
         // --- 初始化與事件監聽器 ---
 
@@ -764,20 +968,21 @@
             $nameInput.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter') { startGame(); }
             });
-
-            // ⭐ 新增排行榜按鈕事件：從 data 屬性讀取成績並跳轉
-            $viewLeaderboardBtn.addEventListener('click', () => {
-                const name = $viewLeaderboardBtn.getAttribute('data-name');
-                const score = $viewLeaderboardBtn.getAttribute('data-score');
-                
-                if (name && score) {
-                    // 使用 URL 參數傳遞成績並跳轉
-                    window.location.href = `leaderboard.html?name=${encodeURIComponent(name)}&score=${score}`;
-                } else {
-                    alert('請先完成測驗才能查看排行榜！');
-                }
+            
+            // 排行榜切換事件
+            $viewLeaderboardBtn.addEventListener('click', () => showAppMode('leaderboard'));
+            $modeLeaderboardBtn.addEventListener('click', () => showAppMode('leaderboard')); 
+            
+            // 排行榜清除事件
+            $clearLeaderboardBtn.addEventListener('click', showClearPasswordModal);
+            $cancelClearBtn.addEventListener('click', cancelClear);
+            $confirmClearBtn.addEventListener('click', verifyPasswordAndClear);
+            $passwordInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') { verifyPasswordAndClear(); }
             });
             
+            // 由於不再有排序按鈕，將 renderLeaderboard 綁定在 mode-change 上即可
+
             // 模式切換事件
             $modeGalleryBtn.addEventListener('click', () => showAppMode('gallery'));
             $modeQuizBtn.addEventListener('click', () => showAppMode('quiz'));
