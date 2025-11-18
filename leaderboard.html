@@ -7,61 +7,6 @@
     <!-- 載入 Tailwind CSS --><script src="https://cdn.tailwindcss.com"></script>
     <!-- 載入 Lucide Icons --><script src="https://unpkg.com/lucide@latest"></script>
     
-    <!-- 引入 Firebase SDK -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-        // 檢查並初始化 Firebase 變數
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-        
-        // Firestore Collection Path (公共資料)
-        window.COLLECTION_PATH = `artifacts/${appId}/public/data/leaderboard_scores`;
-
-        if (firebaseConfig) {
-            window.app = initializeApp(firebaseConfig);
-            window.db = getFirestore(window.app);
-            window.auth = getAuth(window.app);
-        }
-
-        async function initFirebaseAndAuth() {
-            if (!window.auth || !window.db) {
-                console.error("Firebase is not initialized.");
-                return false;
-            }
-            
-            try {
-                if (initialAuthToken) {
-                    await signInWithCustomToken(window.auth, initialAuthToken);
-                } else {
-                    await signInAnonymously(window.auth);
-                }
-                window.userId = window.auth.currentUser?.uid || crypto.randomUUID();
-                window.isAuthReady = true;
-                console.log("Firebase Auth Ready. User ID:", window.userId);
-                return true;
-            } catch (error) {
-                console.error("Firebase Authentication failed:", error);
-                return false;
-            }
-        }
-
-        // 將這些初始化函數暴露給全局範圍，以便後續腳本使用
-        window.initFirebaseAndAuth = initFirebaseAndAuth;
-        window.getFirestore = getFirestore;
-        window.collection = collection;
-        window.addDoc = addDoc;
-        window.getDocs = getDocs;
-        window.deleteDoc = deleteDoc;
-        window.doc = doc;
-        window.query = query;
-        window.onSnapshot = onSnapshot;
-
-    </script>
-
     <style>
         /* 字型建議：Noto Sans TC / Inter */
         html { font-family: 'Inter', 'Noto Sans TC', sans-serif; }
@@ -219,7 +164,66 @@
         <p>© 2025 台灣岩石與礦物小幫手 | 排行榜</p>
     </footer>
 
-    <script>
+    <!-- 修正後的單一模組腳本 -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        // 修正匯入方式：直接匯入 serverTimestamp 和 Timestamp
+        import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, onSnapshot, serverTimestamp, Timestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        
+        // ----------------------------------------------------
+        // --- 全局 Firebase 變數與初始化 ---
+        // ----------------------------------------------------
+        // 檢查並初始化 Firebase 變數 (這些變數由您的執行環境自動提供)
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        
+        // Firestore Collection Path (公共資料)
+        const COLLECTION_PATH = `artifacts/${appId}/public/data/leaderboard_scores`;
+
+        let app, db, auth;
+        let userId;
+        let isAuthReady = false;
+
+        // 簡化 firebase_firestore 物件，直接使用匯入的函式
+        const firebase_firestore = { 
+            serverTimestamp: serverTimestamp,
+            Timestamp: Timestamp
+        };
+
+
+        /** 初始化 Firebase 應用程式和身份驗證 */
+        async function initFirebaseAndAuth() {
+            if (!firebaseConfig) {
+                console.error("Firebase config is missing.");
+                return false;
+            }
+
+            app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            auth = getAuth(app);
+            
+            try {
+                if (initialAuthToken) {
+                    await signInWithCustomToken(auth, initialAuthToken);
+                } else {
+                    await signInAnonymously(auth);
+                }
+                userId = auth.currentUser?.uid || crypto.randomUUID();
+                isAuthReady = true;
+                console.log("Firebase Auth Ready. User ID:", userId);
+                return true;
+            } catch (error) {
+                console.error("Firebase Authentication failed:", error);
+                return false;
+            }
+        }
+        
+        // ----------------------------------------------------
+        // --- 應用程式邏輯 ---
+        // ----------------------------------------------------
+
         // DOM 元素快取
         const $leaderboardList = document.getElementById('leaderboard-list');
         const $emptyLeaderboardMsg = document.getElementById('empty-leaderboard-msg');
@@ -241,7 +245,8 @@
         
         // 密碼常數
         const ADMIN_PASSWORD = 'aylt2001aylt';
-        // const MAX_SCORES = 100; // 最多保留 100 筆資料
+        let unsubscribe = null;
+        let latestEntryId = null;
 
         /** 解析 URL 參數 */
         function getUrlParams() {
@@ -255,12 +260,9 @@
             return params;
         }
 
-        /** * 處理新分數並儲存到 Firestore。
-         * 為了保持前 100 名的限制（因為不能使用 orderBy/limit 組合），
-         * 我們將新分數加入，並執行一個「修剪」動作，刪除排名最低的紀錄。
-         */
+        /** * 處理新分數並儲存到 Firestore。*/
         async function processNewScore(params) {
-            if (!window.isAuthReady) {
+            if (!isAuthReady) {
                 console.warn("Firebase Auth not ready, skipping score submission.");
                 return null;
             }
@@ -270,17 +272,17 @@
                     name: params.name, 
                     score: parseInt(params.score), 
                     date: new Date().toLocaleDateString('zh-TW'),
-                    timestamp: window.firebase.firestore.FieldValue.serverTimestamp() // 為了在同分時保持先後順序
+                    userId: userId, // 儲存使用者 ID
+                    // 修正：直接呼叫簡化後的 firebase_firestore.serverTimestamp()
+                    timestamp: firebase_firestore.serverTimestamp() 
                 };
                 
                 try {
                     // 1. 新增分數
-                    const docRef = await window.addDoc(window.collection(window.db, window.COLLECTION_PATH), newEntry);
+                    const docRef = await addDoc(collection(db, COLLECTION_PATH), newEntry);
                     console.log("New score added with ID: ", docRef.id);
-
-                    // 2. 獲取所有分數進行排序和修剪 (確保只保留最高分的前 N 筆)
-                    // 注意：由於 onSnapshot 已經啟動，這裡只處理新增，修剪將由 onSnapshot 觸發後執行。
                     
+                    // 為了確保本地資料有 ID，我們返回這個物件
                     return { id: docRef.id, ...newEntry };
                 } catch (e) {
                     console.error("Error adding document: ", e);
@@ -294,43 +296,40 @@
             const MAX_SCORES = 100;
             if (scores.length <= MAX_SCORES) return;
 
-            // 1. 根據分數和時間戳（用於穩定性）排序，確保最低分在最後
-            // scores 陣列已經是排序好的狀態 (score DESC, id ASC)
-            
-            // 2. 找出要刪除的最低分文件
+            // 找出要刪除的最低分文件（第 101 筆及以後的）
+            // scores 陣列已經是分數高->低排序，所以最後的元素就是最低分的
             const docsToDelete = scores.slice(MAX_SCORES);
             
             console.log(`Pruning ${docsToDelete.length} low scores.`);
 
-            // 3. 執行刪除操作
-            for (const doc of docsToDelete) {
+            // 執行刪除操作
+            for (const docEntry of docsToDelete) {
                 try {
-                    await window.deleteDoc(window.doc(window.db, window.COLLECTION_PATH, doc.id));
+                    // 使用 document 的 ID 來刪除文件
+                    await deleteDoc(doc(db, COLLECTION_PATH, docEntry.id));
                 } catch (e) {
-                    console.error(`Error deleting score ${doc.id}:`, e);
+                    console.error(`Error deleting score ${docEntry.id}:`, e);
                 }
             }
         }
 
 
         /** 渲染排行榜 */
-        function renderLeaderboard(scoresData, latestEntryId = null) {
-            // 複製一份資料進行排序和修剪
+        function renderLeaderboard(scoresData, highlightId = null) {
+            // 複製一份資料進行排序
             let scores = [...scoresData];
             
-            // 排序邏輯 (分數高->低，同分者依時間戳新->舊)
+            // 排序邏輯 (分數高->低，同分者依時間戳舊->新，確保穩定名次)
             scores.sort((a, b) => {
                 // 主要依據：分數高低
                 if (b.score !== a.score) return b.score - a.score;
                 
-                // 次要依據：時間戳新舊
-                // Firestore timestamp物件需要轉換成數字才能比較
-                const tsA = a.timestamp?.toMillis() || 0;
-                const tsB = b.timestamp?.toMillis() || 0;
+                // 次要依據：時間戳舊->新 (較早紀錄者優先)
+                // 修正：Timestamp 函式物件的 now() 方法，確保在沒有數據時也能比較
+                const tsA = a.timestamp?.toMillis() || firebase_firestore.Timestamp.now().toMillis();
+                const tsB = b.timestamp?.toMillis() || firebase_firestore.Timestamp.now().toMillis();
                 
-                // 如果是新紀錄，id 是一個數字（Date.now()），舊紀錄 id 是字串，這裡假設在分數相同時，較早的紀錄優先
-                // 由於我們想要分數最高的 100 筆，所以在同分時，我們讓ID (時間戳)較小的（較舊的）排前面，以穩定名次。
-                return tsA - tsB;
+                return tsA - tsB; // 數字越小（越早），越排前面
             });
             
             // 顯示前 100 名
@@ -347,6 +346,7 @@
             
             // 重新應用當前的排序鍵 (名字排序)
             if (leaderboardSortKey === 'name') {
+                 // localeCompare 會依據中文筆劃或字母順序排序
                  topScores.sort((a, b) => a.name.localeCompare(b.name, 'zh-TW', { sensitivity: 'base' }));
             }
 
@@ -366,8 +366,8 @@
                     rankColor = 'text-amber-700';
                 }
                 
-                // 判斷是否為本次提交的成績
-                const isLatest = latestEntryId !== null && entry.id === latestEntryId;
+                // 判斷是否為本次提交的成績 (使用 Firestore ID)
+                const isLatest = highlightId !== null && entry.id === highlightId;
                 const scorePercent = entry.score; // 分數就是百分比
 
                 const item = document.createElement('div');
@@ -386,7 +386,7 @@
                     </div>
                     <p class="text-xs text-right ${isLatest ? 'text-yellow-700' : 'text-gray-400'} mt-1">日期：${entry.date}</p>
                     <!-- 顯示 User ID 方便除錯和識別 -->
-                    <p class="text-xs text-left text-gray-300 mt-1">ID: ${entry.userId || 'N/A'}</p>
+                    <p class="text-xs text-left text-gray-300 mt-1">User ID: ${entry.userId || 'N/A'}</p>
                 `;
                 $leaderboardList.appendChild(item);
             });
@@ -394,23 +394,22 @@
             lucide.createIcons();
             
             // 每次渲染完畢後，執行修剪邏輯 (確保數據庫大小可控)
+            // 由於 scores 已經是完整的且排過序的，傳入它可以執行修剪
             pruneScores(scores);
         }
         
-        // 啟動 Firestore 監聽器
-        let unsubscribe = null;
-        let latestEntryId = null;
-
+        /** 啟動 Firestore 監聽器 */
         async function startLeaderboardListener() {
-            if (!window.isAuthReady) return;
+            if (!isAuthReady) return;
             
             // 1. 處理 URL 中的新分數 (儲存)
             const params = getUrlParams();
+            // 檢查 URL 中是否有新分數，如果有，則加入並儲存
             if (params.name && params.score) {
                 const newEntry = await processNewScore(params);
                 if (newEntry) {
                     latestEntryId = newEntry.id;
-                    // 清除 URL 參數
+                    // 清除 URL 參數，避免重新整理時重複儲存
                     try {
                         window.history.replaceState({}, document.title, window.location.pathname);
                     } catch (e) {
@@ -422,17 +421,18 @@
             // 2. 啟動 Firestore 實時監聽 (onSnapshot)
             if (unsubscribe) unsubscribe();
 
-            const q = window.query(window.collection(window.db, window.COLLECTION_PATH));
+            const q = query(collection(db, COLLECTION_PATH));
             
-            unsubscribe = window.onSnapshot(q, (querySnapshot) => {
+            unsubscribe = onSnapshot(q, (querySnapshot) => {
                 allScores = [];
-                querySnapshot.forEach((doc) => {
-                    const data = doc.data();
-                    // 確保 timestamp 欄位存在，否則賦予一個當前時間
+                querySnapshot.forEach((docRef) => {
+                    const data = docRef.data();
+                    // 確保 timestamp 欄位存在
                     if (!data.timestamp) {
-                        data.timestamp = window.firebase.firestore.Timestamp.now();
+                        // 如果缺失，給予一個當前時間
+                        data.timestamp = firebase_firestore.Timestamp.now();
                     }
-                    allScores.push({ id: doc.id, ...data });
+                    allScores.push({ id: docRef.id, ...data });
                 });
                 
                 // 使用載入的數據進行渲染
@@ -460,7 +460,7 @@
         
         /** 密碼驗證邏輯 (Firestore 刪除) */
         async function verifyPasswordAndClear() {
-            if (!window.isAuthReady) return;
+            if (!isAuthReady) return;
 
             const enteredPassword = $passwordInput.value.trim();
             $passwordError.classList.add('hidden');
@@ -472,12 +472,12 @@
 
                 try {
                     // 獲取所有文件 ID
-                    const snapshot = await window.getDocs(window.query(window.collection(window.db, window.COLLECTION_PATH)));
+                    const snapshot = await getDocs(query(collection(db, COLLECTION_PATH)));
                     
                     // 執行刪除
                     const deletePromises = [];
                     snapshot.forEach((docRef) => {
-                        deletePromises.push(window.deleteDoc(window.doc(window.db, window.COLLECTION_PATH, docRef.id)));
+                        deletePromises.push(deleteDoc(doc(db, COLLECTION_PATH, docRef.id)));
                     });
                     
                     await Promise.all(deletePromises);
@@ -504,7 +504,7 @@
         // --- 初始化與事件監聽器 ---
         document.addEventListener('DOMContentLoaded', async () => {
             // 1. 初始化 Firebase 和身份驗證
-            const isReady = await window.initFirebaseAndAuth();
+            const isReady = await initFirebaseAndAuth();
             
             if (isReady) {
                 // 2. 啟動排行榜數據監聽
