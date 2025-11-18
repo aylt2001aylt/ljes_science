@@ -6,6 +6,62 @@
     <title>測驗成績排行榜</title>
     <!-- 載入 Tailwind CSS --><script src="https://cdn.tailwindcss.com"></script>
     <!-- 載入 Lucide Icons --><script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- 引入 Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // 檢查並初始化 Firebase 變數
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        
+        // Firestore Collection Path (公共資料)
+        window.COLLECTION_PATH = `artifacts/${appId}/public/data/leaderboard_scores`;
+
+        if (firebaseConfig) {
+            window.app = initializeApp(firebaseConfig);
+            window.db = getFirestore(window.app);
+            window.auth = getAuth(window.app);
+        }
+
+        async function initFirebaseAndAuth() {
+            if (!window.auth || !window.db) {
+                console.error("Firebase is not initialized.");
+                return false;
+            }
+            
+            try {
+                if (initialAuthToken) {
+                    await signInWithCustomToken(window.auth, initialAuthToken);
+                } else {
+                    await signInAnonymously(window.auth);
+                }
+                window.userId = window.auth.currentUser?.uid || crypto.randomUUID();
+                window.isAuthReady = true;
+                console.log("Firebase Auth Ready. User ID:", window.userId);
+                return true;
+            } catch (error) {
+                console.error("Firebase Authentication failed:", error);
+                return false;
+            }
+        }
+
+        // 將這些初始化函數暴露給全局範圍，以便後續腳本使用
+        window.initFirebaseAndAuth = initFirebaseAndAuth;
+        window.getFirestore = getFirestore;
+        window.collection = collection;
+        window.addDoc = addDoc;
+        window.getDocs = getDocs;
+        window.deleteDoc = deleteDoc;
+        window.doc = doc;
+        window.query = query;
+        window.onSnapshot = onSnapshot;
+
+    </script>
+
     <style>
         /* 字型建議：Noto Sans TC / Inter */
         html { font-family: 'Inter', 'Noto Sans TC', sans-serif; }
@@ -109,10 +165,9 @@
             <!-- 排行榜列表 -->
             <div id="leaderboard-list" class="space-y-3">
                 <!-- Leaderboard items injected by JS -->
-                <div id="loading-message" class="text-center text-lg text-gray-500 py-4 hidden">
-                    <!-- 載入訊息僅為防止閃爍，實際上 localstorage 載入很快 -->
+                <div id="loading-message" class="text-center text-lg text-gray-500 py-4">
                     <i data-lucide="loader" class="w-6 h-6 animate-spin mr-2 inline-block"></i>
-                    載入成績中...
+                    連線到排行榜並載入成績中...
                 </div>
             </div>
             
@@ -134,7 +189,7 @@
         </section>
     </main>
     
-    <!-- ⭐ 密碼驗證 Modal 視窗 -->
+    <!-- 密碼驗證 Modal 視窗 -->
     <div id="password-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 z-50 flex items-center justify-center p-4 hidden transition-opacity">
         <div class="card w-full max-w-sm relative">
             <h3 class="text-xl font-bold mb-4 text-red-600 flex items-center">
@@ -168,9 +223,11 @@
         // DOM 元素快取
         const $leaderboardList = document.getElementById('leaderboard-list');
         const $emptyLeaderboardMsg = document.getElementById('empty-leaderboard-msg');
+        const $loadingMsg = document.getElementById('loading-message');
         const $sortScoreBtn = document.getElementById('sort-score-btn');
         const $sortNameBtn = document.getElementById('sort-name-btn');
         const $clearLeaderboardBtn = document.getElementById('clear-leaderboard-btn');
+        
         // 密碼 Modal 元素
         const $passwordModal = document.getElementById('password-modal');
         const $passwordInput = document.getElementById('password-input');
@@ -180,12 +237,11 @@
         
         // 狀態
         let leaderboardSortKey = 'score'; // 'score' 或 'name'
+        let allScores = []; // 儲存從 Firestore 載入的所有分數
         
         // 密碼常數
         const ADMIN_PASSWORD = 'aylt2001aylt';
-        const STORAGE_KEY = 'quiz_leaderboard';
-
-        // --- 輔助函數 ---
+        // const MAX_SCORES = 100; // 最多保留 100 筆資料
 
         /** 解析 URL 參數 */
         function getUrlParams() {
@@ -199,83 +255,102 @@
             return params;
         }
 
-        /** 從 localStorage 獲取成績列表 */
-        function getScores() {
-            const scoresJson = localStorage.getItem(STORAGE_KEY);
-            return scoresJson ? JSON.parse(scoresJson) : [];
-        }
+        /** * 處理新分數並儲存到 Firestore。
+         * 為了保持前 100 名的限制（因為不能使用 orderBy/limit 組合），
+         * 我們將新分數加入，並執行一個「修剪」動作，刪除排名最低的紀錄。
+         */
+        async function processNewScore(params) {
+            if (!window.isAuthReady) {
+                console.warn("Firebase Auth not ready, skipping score submission.");
+                return null;
+            }
 
-        /** 將成績列表儲存到 localStorage */
-        function setScores(scores) {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(scores));
-        }
-
-        /** 處理新分數並儲存 */
-        function processNewScore(params) {
-            // 檢查是否為有效的成績參數
             if (params.name && params.score && !isNaN(parseInt(params.score))) {
-                const scores = getScores();
-                
-                // 檢查是否已經有這個分數（防止重複儲存，雖然 ID 不同）
-                // 為了簡單起見，我們只依靠時間戳 ID 來保證唯一性
-                
                 const newEntry = { 
-                    id: Date.now(), // 唯一 ID (時間戳)
                     name: params.name, 
                     score: parseInt(params.score), 
                     date: new Date().toLocaleDateString('zh-TW'),
+                    timestamp: window.firebase.firestore.FieldValue.serverTimestamp() // 為了在同分時保持先後順序
                 };
-                scores.push(newEntry);
-                setScores(scores);
-                return newEntry;
+                
+                try {
+                    // 1. 新增分數
+                    const docRef = await window.addDoc(window.collection(window.db, window.COLLECTION_PATH), newEntry);
+                    console.log("New score added with ID: ", docRef.id);
+
+                    // 2. 獲取所有分數進行排序和修剪 (確保只保留最高分的前 N 筆)
+                    // 注意：由於 onSnapshot 已經啟動，這裡只處理新增，修剪將由 onSnapshot 觸發後執行。
+                    
+                    return { id: docRef.id, ...newEntry };
+                } catch (e) {
+                    console.error("Error adding document: ", e);
+                }
             }
             return null;
         }
+        
+        /** 修剪分數列表：僅保留前 100 筆最高分 */
+        async function pruneScores(scores) {
+            const MAX_SCORES = 100;
+            if (scores.length <= MAX_SCORES) return;
+
+            // 1. 根據分數和時間戳（用於穩定性）排序，確保最低分在最後
+            // scores 陣列已經是排序好的狀態 (score DESC, id ASC)
+            
+            // 2. 找出要刪除的最低分文件
+            const docsToDelete = scores.slice(MAX_SCORES);
+            
+            console.log(`Pruning ${docsToDelete.length} low scores.`);
+
+            // 3. 執行刪除操作
+            for (const doc of docsToDelete) {
+                try {
+                    await window.deleteDoc(window.doc(window.db, window.COLLECTION_PATH, doc.id));
+                } catch (e) {
+                    console.error(`Error deleting score ${doc.id}:`, e);
+                }
+            }
+        }
+
 
         /** 渲染排行榜 */
-        function renderLeaderboard() {
+        function renderLeaderboard(scoresData, latestEntryId = null) {
+            // 複製一份資料進行排序和修剪
+            let scores = [...scoresData];
             
-            // 處理 URL 參數中的最新成績（用於高亮）
-            const params = getUrlParams();
-            let latestEntryId = null;
+            // 排序邏輯 (分數高->低，同分者依時間戳新->舊)
+            scores.sort((a, b) => {
+                // 主要依據：分數高低
+                if (b.score !== a.score) return b.score - a.score;
+                
+                // 次要依據：時間戳新舊
+                // Firestore timestamp物件需要轉換成數字才能比較
+                const tsA = a.timestamp?.toMillis() || 0;
+                const tsB = b.timestamp?.toMillis() || 0;
+                
+                // 如果是新紀錄，id 是一個數字（Date.now()），舊紀錄 id 是字串，這裡假設在分數相同時，較早的紀錄優先
+                // 由於我們想要分數最高的 100 筆，所以在同分時，我們讓ID (時間戳)較小的（較舊的）排前面，以穩定名次。
+                return tsA - tsB;
+            });
             
-            // 檢查 URL 中是否有新分數，如果有，則加入並儲存
-            if (params.name && params.score) {
-                const newEntry = processNewScore(params);
-                if (newEntry) {
-                    latestEntryId = newEntry.id;
-                }
-            }
-
-            let scores = getScores();
-            
-            // 排序邏輯
-            if (leaderboardSortKey === 'score') {
-                // 分數由高到低，分數相同時使用 ID (時間戳) 確保排序穩定性
-                scores.sort((a, b) => {
-                    if (b.score !== a.score) return b.score - a.score;
-                    return a.id - b.id; 
-                });
-            } else if (leaderboardSortKey === 'name') {
-                // 姓名筆劃/字母排序
-                scores.sort((a, b) => a.name.localeCompare(b.name, 'zh-TW', { sensitivity: 'base' }));
-            }
+            // 顯示前 100 名
+            const topScores = scores.slice(0, 100);
 
             $leaderboardList.innerHTML = '';
+            $loadingMsg.classList.add('hidden');
             
-            if (scores.length === 0) {
+            if (topScores.length === 0) {
                 $emptyLeaderboardMsg.classList.remove('hidden');
-                // 清除 URL 參數
-                try {
-                    window.history.replaceState({}, document.title, window.location.pathname);
-                } catch (e) {
-                    console.warn("無法替換歷史狀態 (replaceState):", e);
-                }
                 return;
             }
             $emptyLeaderboardMsg.classList.add('hidden');
             
-            scores.forEach((entry, index) => {
+            // 重新應用當前的排序鍵 (名字排序)
+            if (leaderboardSortKey === 'name') {
+                 topScores.sort((a, b) => a.name.localeCompare(b.name, 'zh-TW', { sensitivity: 'base' }));
+            }
+
+            topScores.forEach((entry, index) => {
                 const rank = index + 1;
                 let rankText = rank;
                 let rankColor = 'text-gray-500';
@@ -293,6 +368,7 @@
                 
                 // 判斷是否為本次提交的成績
                 const isLatest = latestEntryId !== null && entry.id === latestEntryId;
+                const scorePercent = entry.score; // 分數就是百分比
 
                 const item = document.createElement('div');
                 item.className = `flex flex-col p-4 border rounded-lg shadow-md transition-all ${isLatest ? 'bg-yellow-50 border-yellow-400 scale-[1.02] ring-2 ring-yellow-500' : 'bg-white border-gray-100'}`;
@@ -306,25 +382,69 @@
                     </div>
                     <!-- 分數條 -->
                     <div class="w-full bg-gray-100 h-2 rounded-md overflow-hidden">
-                        <div class="score-bar" style="width: ${entry.score}%;"></div>
+                        <div class="score-bar" style="width: ${scorePercent}%;"></div>
                     </div>
                     <p class="text-xs text-right ${isLatest ? 'text-yellow-700' : 'text-gray-400'} mt-1">日期：${entry.date}</p>
+                    <!-- 顯示 User ID 方便除錯和識別 -->
+                    <p class="text-xs text-left text-gray-300 mt-1">ID: ${entry.userId || 'N/A'}</p>
                 `;
                 $leaderboardList.appendChild(item);
             });
             
-            // 清除 URL 參數，避免重新整理時重複儲存或錯誤高亮
-            if (latestEntryId) {
-                try {
-                    window.history.replaceState({}, document.title, window.location.pathname);
-                } catch (e) {
-                    console.warn("無法在儲存後替換歷史狀態 (replaceState):", e);
+            lucide.createIcons();
+            
+            // 每次渲染完畢後，執行修剪邏輯 (確保數據庫大小可控)
+            pruneScores(scores);
+        }
+        
+        // 啟動 Firestore 監聽器
+        let unsubscribe = null;
+        let latestEntryId = null;
+
+        async function startLeaderboardListener() {
+            if (!window.isAuthReady) return;
+            
+            // 1. 處理 URL 中的新分數 (儲存)
+            const params = getUrlParams();
+            if (params.name && params.score) {
+                const newEntry = await processNewScore(params);
+                if (newEntry) {
+                    latestEntryId = newEntry.id;
+                    // 清除 URL 參數
+                    try {
+                        window.history.replaceState({}, document.title, window.location.pathname);
+                    } catch (e) {
+                        console.warn("無法替換歷史狀態 (replaceState):", e);
+                    }
                 }
             }
-            
-            lucide.createIcons();
-        }
 
+            // 2. 啟動 Firestore 實時監聽 (onSnapshot)
+            if (unsubscribe) unsubscribe();
+
+            const q = window.query(window.collection(window.db, window.COLLECTION_PATH));
+            
+            unsubscribe = window.onSnapshot(q, (querySnapshot) => {
+                allScores = [];
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    // 確保 timestamp 欄位存在，否則賦予一個當前時間
+                    if (!data.timestamp) {
+                        data.timestamp = window.firebase.firestore.Timestamp.now();
+                    }
+                    allScores.push({ id: doc.id, ...data });
+                });
+                
+                // 使用載入的數據進行渲染
+                renderLeaderboard(allScores, latestEntryId);
+                // 渲染後清除 latestEntryId，避免排序切換時高亮錯誤
+                latestEntryId = null;
+            }, (error) => {
+                console.error("Error listening to leaderboard: ", error);
+                $loadingMsg.textContent = "載入失敗，請檢查網路連線或權限。";
+            });
+        }
+        
         /** 顯示密碼 Modal */
         function showClearPasswordModal() {
             $passwordInput.value = '';
@@ -338,21 +458,40 @@
             $passwordModal.classList.add('hidden');
         }
         
-        /** 密碼驗證邏輯 (localStorage 刪除) */
-        function verifyPasswordAndClear() {
+        /** 密碼驗證邏輯 (Firestore 刪除) */
+        async function verifyPasswordAndClear() {
+            if (!window.isAuthReady) return;
+
             const enteredPassword = $passwordInput.value.trim();
             $passwordError.classList.add('hidden');
             
             if (enteredPassword === ADMIN_PASSWORD) {
                 // 驗證成功，執行清除操作
-                localStorage.removeItem(STORAGE_KEY);
-                
-                // 隱藏 Modal
-                $passwordModal.classList.add('hidden');
-                
-                // 重新渲染
-                renderLeaderboard();
-                console.log("All scores successfully cleared from localStorage.");
+                $loadingMsg.classList.remove('hidden');
+                $loadingMsg.textContent = "正在清除所有紀錄...";
+
+                try {
+                    // 獲取所有文件 ID
+                    const snapshot = await window.getDocs(window.query(window.collection(window.db, window.COLLECTION_PATH)));
+                    
+                    // 執行刪除
+                    const deletePromises = [];
+                    snapshot.forEach((docRef) => {
+                        deletePromises.push(window.deleteDoc(window.doc(window.db, window.COLLECTION_PATH, docRef.id)));
+                    });
+                    
+                    await Promise.all(deletePromises);
+                    
+                    // 隱藏 Modal
+                    $passwordModal.classList.add('hidden');
+                    
+                    console.log("All scores successfully cleared from Firestore.");
+
+                } catch (e) {
+                    console.error("Error clearing scores:", e);
+                    $passwordError.textContent = `清除失敗: ${e.message}`;
+                    $passwordError.classList.remove('hidden');
+                }
 
             } else {
                 // 驗證失敗
@@ -363,25 +502,35 @@
         }
         
         // --- 初始化與事件監聽器 ---
-        document.addEventListener('DOMContentLoaded', () => {
-            // 1. 綁定排序事件
+        document.addEventListener('DOMContentLoaded', async () => {
+            // 1. 初始化 Firebase 和身份驗證
+            const isReady = await window.initFirebaseAndAuth();
+            
+            if (isReady) {
+                // 2. 啟動排行榜數據監聽
+                startLeaderboardListener();
+            } else {
+                $loadingMsg.textContent = "無法連線至雲端資料庫，請檢查設定。";
+            }
+
+            // 3. 綁定排序事件
             $sortScoreBtn.addEventListener('click', () => {
                 leaderboardSortKey = 'score';
                 $sortScoreBtn.classList.add('selected');
                 $sortNameBtn.classList.remove('selected');
-                renderLeaderboard();
+                renderLeaderboard(allScores);
             });
             $sortNameBtn.addEventListener('click', () => {
                 leaderboardSortKey = 'name';
                 $sortNameBtn.classList.add('selected');
                 $sortScoreBtn.classList.remove('selected');
-                renderLeaderboard();
+                renderLeaderboard(allScores);
             });
 
-            // 2. 綁定清除事件 (觸發密碼 Modal)
+            // 4. 綁定清除事件 (觸發密碼 Modal)
             $clearLeaderboardBtn.addEventListener('click', showClearPasswordModal);
             
-            // 3. 綁定密碼 Modal 事件
+            // 5. 綁定密碼 Modal 事件
             $cancelClearBtn.addEventListener('click', cancelClear);
             $confirmClearBtn.addEventListener('click', verifyPasswordAndClear);
             
@@ -392,8 +541,6 @@
                 }
             });
 
-            // 4. 首次渲染 (包含處理 URL 中的新分數並儲存)
-            renderLeaderboard();
             lucide.createIcons(); // 確保所有 icon 都被渲染
         });
     </script>
