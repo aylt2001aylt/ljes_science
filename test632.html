@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>岩石與礦物大挑戰</title>
+    <title>岩石與礦物大挑戰 (含成就紀錄)</title>
     <!-- 引入 Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- 引入 React 和 ReactDOM -->
@@ -28,6 +28,21 @@
         .animate-slide-up {
             animation: slideUp 0.3s ease-out forwards;
         }
+        /* 自定義捲軸樣式 */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
     </style>
 </head>
 <body class="bg-stone-100 font-sans text-stone-800">
@@ -43,15 +58,17 @@
             Pickaxe: ({size=24, className=""}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M14.5 5.5C18.5 2.5 22 2 22 2a6 6 0 0 0-6 6c0 0 .5 3.5-2.5 7.5"/><path d="M16.5 7.5 14 5"/><path d="M22 2 12.5 11.5"/><path d="m5 14-2 2 3 3 2-2"/><path d="m9 18-3 3 5 5 3-3"/></svg>,
             AlertCircle: ({size=24, className=""}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>,
             ChevronRight: ({className=""}) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m9 18 6-6-6-6"/></svg>,
+            ChevronLeft: ({className=""}) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m15 18-6-6 6-6"/></svg>,
             CheckCircle: ({className=""}) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>,
             XCircle: ({className=""}) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>,
             Trophy: ({size=24, className=""}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>,
-            Map: ({size=24}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" x2="9" y1="3" y2="18"/><line x1="15" x2="15" y1="6" y2="21"/></svg>,
-            BookOpen: ({size=24}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>,
-            RefreshCw: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+            RefreshCw: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>,
+            History: ({size=24}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>,
+            Trash2: ({size=20}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
         };
 
         const QuizApp = () => {
+            // 遊戲狀態: 'start', 'quiz', 'result', 'history'
             const [gameState, setGameState] = useState('start');
             const [quizQuestions, setQuizQuestions] = useState([]);
             const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -59,6 +76,17 @@
             const [selectedOption, setSelectedOption] = useState(null);
             const [showFeedback, setShowFeedback] = useState(false);
             const [feedback, setFeedback] = useState({ isCorrect: false, text: '' });
+            
+            // 歷史紀錄 (從 localStorage 讀取)
+            const [history, setHistory] = useState([]);
+
+            // 初始化時讀取紀錄
+            useEffect(() => {
+                const savedHistory = localStorage.getItem('quizHistory');
+                if (savedHistory) {
+                    setHistory(JSON.parse(savedHistory));
+                }
+            }, []);
 
             // 完整題庫 (100題)
             const fullQuestionPool = [
@@ -147,8 +175,8 @@
                   correctIndex: 1,
                   explanation: "錯誤。滑石是硬度最小（硬度1）的礦物，無法切割玻璃。"
                 },
-
-                // --- 選擇題區 (13-40 原有) ---
+                // --- 選擇題區 (13-100) ...為了節省長度，保留所有題庫 ---
+                // ... (此處保留原有的100題題庫，不重複列出以節省篇幅，實際檔案會包含完整題庫)
                 {
                   id: 13,
                   text: "下列哪一種物質是由「多種」礦物所構成的？",
@@ -767,7 +795,7 @@
                   correctIndex: 2,
                   explanation: "化石絕大多數發現於沉積岩中，火成岩溫度太高會破壞生物遺骸。"
                 }
-              ];
+            ];
 
             // 21 種稱號定義
             const rankDefinitions = [
@@ -794,15 +822,28 @@
                 { title: "🪐 宇宙級地質天神", color: "text-indigo-500", msg: "太神了！這已經不是地球人能達到的境界！" },
             ];
 
+            // 格式化日期函數 (YYYY-MM-DD HH:mm:ss)
+            const formatDate = (date) => {
+                const pad = (n) => n.toString().padStart(2, '0');
+                const y = date.getFullYear();
+                const m = pad(date.getMonth() + 1);
+                const d = pad(date.getDate());
+                const h = pad(date.getHours());
+                const mi = pad(date.getMinutes());
+                const s = pad(date.getSeconds());
+                return `${y}-${m}-${d} ${h}:${mi}:${s}`;
+            };
+
             const shuffleArray = (array) => {
                 const newArray = [...array];
                 for (let i = newArray.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
                 }
                 return newArray;
             };
 
+            // 開始新遊戲
             const startGame = () => {
                 const shuffledQuestions = shuffleArray(fullQuestionPool);
                 const selectedQuestions = shuffledQuestions.slice(0, 20);
@@ -814,6 +855,7 @@
                 setSelectedOption(null);
             };
 
+            // 處理選項點擊
             const handleOptionClick = (index) => {
                 if (showFeedback) return;
                 setSelectedOption(index);
@@ -821,46 +863,82 @@
                 const currentQ = quizQuestions[currentQuestionIndex];
                 const isCorrect = index === currentQ.correctIndex;
                 if (isCorrect) {
-                setScore(prev => prev + 5);
-                setFeedback({ isCorrect: true, text: "答對了！ (+5分)" });
+                    setScore(prev => prev + 5);
+                    setFeedback({ isCorrect: true, text: "答對了！ (+5分)" });
                 } else {
-                setFeedback({ isCorrect: false, text: "答錯囉！" });
+                    setFeedback({ isCorrect: false, text: "答錯囉！" });
                 }
             };
 
+            // 下一題
             const nextQuestion = () => {
                 if (currentQuestionIndex < quizQuestions.length - 1) {
-                setCurrentQuestionIndex(prev => prev + 1);
-                setShowFeedback(false);
-                setSelectedOption(null);
+                    setCurrentQuestionIndex(prev => prev + 1);
+                    setShowFeedback(false);
+                    setSelectedOption(null);
                 } else {
-                setGameState('result');
+                    finishGame();
                 }
             };
 
+            // 取得稱號
             const getRank = (currentScore) => {
                 const safeScore = Math.max(0, Math.min(100, currentScore));
                 const index = Math.floor(safeScore / 5);
                 return rankDefinitions[index] || rankDefinitions[rankDefinitions.length - 1];
             };
 
+            // 結束遊戲並儲存紀錄
+            const finishGame = () => {
+                // 1. 計算最終結果
+                const rank = getRank(score);
+                const now = new Date();
+                
+                // 2. 建立新紀錄物件
+                const newRecord = {
+                    date: formatDate(now),
+                    score: score,
+                    title: rank.title,
+                    color: rank.color,
+                    timestamp: now.getTime() // 用於排序
+                };
+
+                // 3. 更新狀態與 LocalStorage
+                const updatedHistory = [newRecord, ...history]; // 新的放前面
+                setHistory(updatedHistory);
+                localStorage.setItem('quizHistory', JSON.stringify(updatedHistory));
+
+                // 4. 切換到結果頁面
+                setGameState('result');
+            };
+
+            // 清除紀錄
+            const clearHistory = () => {
+                if (confirm("確定要刪除所有紀錄嗎？此動作無法復原。")) {
+                    setHistory([]);
+                    localStorage.removeItem('quizHistory');
+                }
+            };
+
+            // --- 渲染部分 ---
             return (
                 <div className="min-h-screen bg-stone-100 font-sans text-stone-800 flex flex-col items-center justify-center p-4">
                 <div className="w-full max-w-2xl bg-white rounded-2xl shadow-xl overflow-hidden border-4 border-stone-200">
                     
+                    {/* Header */}
                     <div className="bg-stone-700 p-6 text-center relative">
                     <h1 className="text-2xl md:text-3xl font-bold text-white flex items-center justify-center gap-2">
                         <Icons.Mountain className="text-emerald-400"/> 岩石與礦物大挑戰
                     </h1>
-                    {gameState === 'quiz' && (
-                        <div className="absolute top-6 right-6 text-stone-300 text-sm font-mono hidden md:block">
-                        隨機題庫模式
-                        </div>
-                    )}
+                    {/* 右上角提示文字 */}
+                    <div className="absolute top-6 right-6 text-stone-300 text-sm font-mono hidden md:block">
+                        {gameState === 'history' ? '歷史紀錄' : (gameState === 'quiz' ? '隨機題庫模式' : '')}
+                    </div>
                     </div>
 
                     <div className="p-6 md:p-8 min-h-[450px] flex flex-col justify-center">
                     
+                    {/* --- 首頁 (Start) --- */}
                     {gameState === 'start' && (
                         <div className="text-center space-y-8 animate-fade-in">
                         <div className="flex justify-center text-stone-600 mb-4 relative">
@@ -882,15 +960,24 @@
                             </div>
                         </div>
 
-                        <button 
-                            onClick={startGame}
-                            className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xl font-bold transition-all transform hover:scale-105 shadow-lg flex items-center justify-center gap-2 group"
-                        >
-                            開始隨機測驗 <Icons.ChevronRight className="group-hover:translate-x-1 transition-transform"/>
-                        </button>
+                        <div className="flex flex-col gap-3">
+                            <button 
+                                onClick={startGame}
+                                className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xl font-bold transition-all transform hover:scale-105 shadow-lg flex items-center justify-center gap-2 group"
+                            >
+                                開始隨機測驗 <Icons.ChevronRight className="group-hover:translate-x-1 transition-transform"/>
+                            </button>
+                            <button 
+                                onClick={() => setGameState('history')}
+                                className="w-full py-3 bg-stone-200 hover:bg-stone-300 text-stone-700 rounded-xl text-lg font-bold transition-colors flex items-center justify-center gap-2"
+                            >
+                                <Icons.History size={20}/> 查看我的成就紀錄
+                            </button>
+                        </div>
                         </div>
                     )}
 
+                    {/* --- 測驗中 (Quiz) --- */}
                     {gameState === 'quiz' && quizQuestions.length > 0 && (
                         <div className="space-y-6 animate-fade-in">
                         <div className="space-y-2">
@@ -971,6 +1058,7 @@
                         </div>
                     )}
 
+                    {/* --- 結算頁面 (Result) --- */}
                     {gameState === 'result' && (
                         <div className="text-center space-y-8 animate-fade-in py-4">
                         <div className="relative inline-block">
@@ -997,12 +1085,75 @@
                             </p>
                         </div>
 
-                        <button 
-                            onClick={startGame}
-                            className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xl font-bold shadow-lg flex items-center justify-center gap-2 transition-all hover:shadow-xl"
-                        >
-                            <Icons.RefreshCw /> 再挑戰一次
-                        </button>
+                        <div className="flex flex-col gap-3">
+                            <button 
+                                onClick={startGame}
+                                className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xl font-bold shadow-lg flex items-center justify-center gap-2 transition-all hover:shadow-xl"
+                            >
+                                <Icons.RefreshCw /> 再挑戰一次
+                            </button>
+                            <button 
+                                onClick={() => setGameState('history')}
+                                className="w-full py-3 bg-stone-200 hover:bg-stone-300 text-stone-700 rounded-xl text-lg font-bold transition-colors flex items-center justify-center gap-2"
+                            >
+                                <Icons.History size={20}/> 查看所有紀錄
+                            </button>
+                        </div>
+                        </div>
+                    )}
+
+                    {/* --- 歷史紀錄 (History) --- */}
+                    {gameState === 'history' && (
+                        <div className="h-full flex flex-col animate-fade-in">
+                            <div className="flex justify-between items-center mb-6">
+                                <h2 className="text-2xl font-bold text-stone-800 flex items-center gap-2">
+                                    <Icons.History className="text-emerald-600"/> 稱號紀錄
+                                </h2>
+                                <button 
+                                    onClick={() => setGameState('start')}
+                                    className="px-4 py-2 bg-stone-200 hover:bg-stone-300 rounded-lg text-sm font-bold transition-colors flex items-center gap-1"
+                                >
+                                    <Icons.ChevronLeft size={16}/> 返回
+                                </button>
+                            </div>
+
+                            <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 mb-4" style={{maxHeight: '400px'}}>
+                                {history.length === 0 ? (
+                                    <div className="h-64 flex flex-col items-center justify-center text-stone-400 border-2 border-dashed border-stone-200 rounded-xl bg-stone-50">
+                                        <Icons.Trophy size={48} className="mb-2 opacity-50"/>
+                                        <p>目前還沒有任何紀錄喔！</p>
+                                        <p className="text-sm">快去挑戰看看吧！</p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-3">
+                                        {history.map((record, idx) => (
+                                            <div key={idx} className="bg-white p-4 rounded-xl border border-stone-200 shadow-sm flex items-center justify-between hover:border-emerald-200 transition-colors">
+                                                <div className="flex items-center gap-4">
+                                                    <div className={`text-2xl font-bold w-12 text-center ${record.score >= 60 ? 'text-emerald-600' : 'text-stone-400'}`}>
+                                                        {record.score}
+                                                    </div>
+                                                    <div>
+                                                        <div className={`font-bold ${record.color} text-lg`}>{record.title}</div>
+                                                        <div className="text-xs text-stone-400 font-mono mt-1">{record.date}</div>
+                                                    </div>
+                                                </div>
+                                                {idx === 0 && (
+                                                    <span className="bg-emerald-100 text-emerald-700 text-xs px-2 py-1 rounded-full font-bold">最新</span>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            {history.length > 0 && (
+                                <button 
+                                    onClick={clearHistory}
+                                    className="w-full py-3 border-2 border-red-100 text-red-400 hover:bg-red-50 hover:text-red-500 hover:border-red-200 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2"
+                                >
+                                    <Icons.Trash2 size={18}/> 清除所有紀錄
+                                </button>
+                            )}
                         </div>
                     )}
 
