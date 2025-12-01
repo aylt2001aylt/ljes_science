@@ -175,8 +175,7 @@
                   correctIndex: 1,
                   explanation: "錯誤。滑石是硬度最小（硬度1）的礦物，無法切割玻璃。"
                 },
-                // --- 選擇題區 (13-100) ...為了節省長度，保留所有題庫 ---
-                // ... (此處保留原有的100題題庫，不重複列出以節省篇幅，實際檔案會包含完整題庫)
+                // --- 選擇題區 (13-100) ---
                 {
                   id: 13,
                   text: "下列哪一種物質是由「多種」礦物所構成的？",
@@ -373,8 +372,6 @@
                   correctIndex: 2,
                   explanation: "石灰岩是水泥工業最重要的原料。"
                 },
-
-                // --- 新增擴充題目 (41-100) ---
                 {
                   id: 41,
                   text: "爽身粉的主要原料是哪一種礦物？",
@@ -914,9 +911,15 @@
 
             // 清除紀錄
             const clearHistory = () => {
-                if (confirm("確定要刪除所有紀錄嗎？此動作無法復原。")) {
-                    setHistory([]);
-                    localStorage.removeItem('quizHistory');
+                const password = prompt("請輸入密碼以刪除紀錄：");
+                if (password === "7772041") {
+                    if (confirm("確定要刪除所有紀錄嗎？此動作無法復原。")) {
+                        setHistory([]);
+                        localStorage.removeItem('quizHistory');
+                        alert("紀錄已刪除");
+                    }
+                } else if (password !== null) {
+                    alert("密碼錯誤！");
                 }
             };
 
