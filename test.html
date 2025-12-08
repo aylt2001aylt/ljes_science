@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Trophy, History, Play, Trash2, Home, CheckCircle, XCircle, Leaf, ShieldAlert, Award, Upload, FileText, Settings, Save } from 'lucide-react';
+import { Trophy, History, Play, Trash2, Home, CheckCircle, XCircle, Leaf, ShieldAlert, Award, FileText, Settings, Save, AlertCircle } from 'lucide-react';
 
 // --- 稱號系統配置 (20個等級) ---
 const TITLES = [
@@ -25,7 +25,7 @@ const TITLES = [
   { min: 95, name: "自然之神", color: "text-yellow-500 font-bold" },
 ];
 
-// --- 預設題庫 (從使用者提供的 CSV 片段解析) ---
+// --- 預設題庫 ---
 const INITIAL_DATA = [
   { id: 1, question: "地球表面的岩石和土壤是大部分生物生長或活動的環境。", options: ["O", "X"], answer: "O" },
   { id: 2, question: "在野外，到處都看得到由岩石所形成各種地形景觀，不同地方的岩石種類都相同。", options: ["O", "X"], answer: "X" },
@@ -55,19 +55,30 @@ export default function NatureQuizApp() {
   const [feedback, setFeedback] = useState(null);
   const [selectedOption, setSelectedOption] = useState(null);
   const [titleHistory, setTitleHistory] = useState([]);
+  
+  // 密碼驗證相關狀態
   const [passwordInput, setPasswordInput] = useState('');
   const [showPasswordModal, setShowPasswordModal] = useState(false);
-  const [passwordAction, setPasswordAction] = useState(null); // 'deleteHistory' or 'enterAdmin'
+  const [passwordAction, setPasswordAction] = useState(null); 
+  
+  // 題庫匯入相關狀態
   const [csvInput, setCsvInput] = useState('');
+
+  // 訊息模態框狀態 (取代 alert/confirm)
+  const [msgModal, setMsgModal] = useState({ isOpen: false, type: 'info', title: '', message: '', onConfirm: null });
 
   // 初始化：讀取歷史紀錄與自訂題庫
   useEffect(() => {
-    const savedHistory = localStorage.getItem('quizTitleHistory');
-    if (savedHistory) setTitleHistory(JSON.parse(savedHistory));
+    try {
+      const savedHistory = localStorage.getItem('quizTitleHistory');
+      if (savedHistory) setTitleHistory(JSON.parse(savedHistory));
 
-    const savedBank = localStorage.getItem('customQuestionBank');
-    if (savedBank) {
-      setQuestionBank(JSON.parse(savedBank));
+      const savedBank = localStorage.getItem('customQuestionBank');
+      if (savedBank) {
+        setQuestionBank(JSON.parse(savedBank));
+      }
+    } catch (e) {
+      console.error("讀取紀錄失敗", e);
     }
   }, []);
 
@@ -82,13 +93,24 @@ export default function NatureQuizApp() {
     };
   }, []);
 
+  // --- 輔助函數：顯示訊息 ---
+  const showAlert = (message, title = "提示") => {
+    setMsgModal({ isOpen: true, type: 'info', title, message, onConfirm: null });
+  };
+
+  const showConfirm = (message, onConfirm, title = "確認") => {
+    setMsgModal({ isOpen: true, type: 'confirm', title, message, onConfirm });
+  };
+
+  const closeMsgModal = () => {
+    setMsgModal({ ...msgModal, isOpen: false });
+  };
+
   // --- 邏輯函數 ---
 
   const startQuiz = () => {
-    // 確保題庫足夠
     const bank = questionBank.length > 0 ? questionBank : INITIAL_DATA;
     const shuffled = [...bank].sort(() => 0.5 - Math.random());
-    // 如果題庫少於20題，就取全部，否則取20題
     const selected = shuffled.slice(0, 20);
     setCurrentQuestions(selected);
     setCurrentQIndex(0);
@@ -141,43 +163,47 @@ export default function NatureQuizApp() {
       if (passwordAction === 'deleteHistory') {
         localStorage.removeItem('quizTitleHistory');
         setTitleHistory([]);
-        alert("歷史紀錄已刪除。");
+        showAlert("歷史紀錄已成功刪除。");
       } else if (passwordAction === 'enterAdmin') {
         setView('admin');
       }
       setShowPasswordModal(false);
       setPasswordInput('');
     } else {
-      alert("密碼錯誤！");
+      showAlert("密碼錯誤！請重新輸入。", "驗證失敗");
     }
   };
 
   // CSV 解析邏輯
   const parseAndSaveCSV = () => {
+    if (!csvInput.trim()) {
+      showAlert("請先輸入 CSV 內容！");
+      return;
+    }
+
     try {
       const rows = csvInput.trim().split('\n');
       const newQuestions = [];
       let idCounter = 1;
 
       rows.forEach((row, index) => {
-        // 簡單的 CSV 解析：假設沒有包含逗號的引號內容
-        // 格式: 作者,分數,秒數,題幹,正選,選項一,選項二,選項三,選項四
-        const cols = row.split(',').map(c => c.trim());
+        // 移除可能存在的 \r
+        const cleanRow = row.replace(/\r/g, '');
+        const cols = cleanRow.split(',').map(c => c.trim());
         
-        // 跳過標題列或無效列 (檢查題幹是否存在)
+        // 格式檢查: 題幹在第4欄 (index 3)
         if (cols.length < 5 || !cols[3] || cols[3] === '題幹') return;
 
         const questionText = cols[3];
         const correctIndex = parseInt(cols[4]); // 1-based index
         
-        // 收集選項 (過濾掉空白的選項，例如是非題只有兩個)
+        // 收集選項 (第 6 欄開始)
         const rawOptions = [cols[5], cols[6], cols[7], cols[8]];
         const options = rawOptions.filter(opt => opt && opt !== '');
 
-        // 確保有選項且正確答案索引有效
+        // 驗證
         if (options.length >= 2 && !isNaN(correctIndex) && correctIndex <= options.length) {
-          const correctVal = rawOptions[correctIndex - 1]; // 取得正確答案文字
-          
+          const correctVal = rawOptions[correctIndex - 1];
           newQuestions.push({
             id: idCounter++,
             question: questionText,
@@ -190,17 +216,52 @@ export default function NatureQuizApp() {
       if (newQuestions.length > 0) {
         setQuestionBank(newQuestions);
         localStorage.setItem('customQuestionBank', JSON.stringify(newQuestions));
-        alert(`成功匯入 ${newQuestions.length} 題！`);
+        showAlert(`成功匯入 ${newQuestions.length} 題！`, "匯入成功");
         setView('home');
       } else {
-        alert("解析失敗，未找到有效題目。請檢查格式。");
+        showAlert("無法解析任何題目，請檢查 CSV 格式是否正確。\n(需包含：...題幹, 正確選項代號, 選項1, 選項2...)", "解析失敗");
       }
     } catch (e) {
-      alert("發生錯誤：" + e.message);
+      showAlert("發生錯誤：" + e.message, "系統錯誤");
     }
   };
 
   // --- 畫面元件 ---
+
+  // 共用訊息視窗 (Modal)
+  const MessageModal = () => {
+    if (!msgModal.isOpen) return null;
+    return (
+      <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[100] p-4 animate-fadeIn">
+        <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl transform transition-all scale-100">
+          <div className="flex items-center gap-2 mb-4">
+            {msgModal.type === 'confirm' ? <AlertCircle className="text-amber-500" /> : <ShieldAlert className="text-blue-500" />}
+            <h3 className="text-lg font-bold text-gray-800">{msgModal.title}</h3>
+          </div>
+          <p className="text-gray-600 mb-6 whitespace-pre-wrap">{msgModal.message}</p>
+          <div className="flex gap-3 justify-end">
+            {msgModal.type === 'confirm' && (
+              <button 
+                onClick={closeMsgModal}
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-bold transition"
+              >
+                取消
+              </button>
+            )}
+            <button 
+              onClick={() => {
+                if (msgModal.onConfirm) msgModal.onConfirm();
+                closeMsgModal();
+              }}
+              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-bold transition"
+            >
+              確定
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   const renderHome = () => (
     <div className="flex flex-col items-center justify-center min-h-screen p-4 space-y-8 animate-fadeIn">
@@ -243,11 +304,9 @@ export default function NatureQuizApp() {
       <div className="bg-white p-6 rounded-2xl shadow-xl flex-1 flex flex-col">
         <div className="mb-4 text-stone-600 text-sm bg-blue-50 p-4 rounded-lg border border-blue-100">
           <p className="font-bold mb-2">使用說明：</p>
-          <p>1. 請開啟您的 CSV 檔案 (Excel)。</p>
-          <p>2. 複製所有內容 (包含標題列: 作者,分數,秒數,題幹,正選,選項一...)。</p>
-          <p>3. 貼上到下方的文字框中。</p>
-          <p>4. 點擊「解析並儲存」。</p>
-          <p className="mt-2 text-blue-600">格式要求：第4欄為題目，第5欄為正確答案代號(1,2,3,4)，第6-9欄為選項。</p>
+          <p>1. 開啟 Excel 或 CSV 檔案，選取所有資料包含標題列 (作者,分數,秒數,題幹...)。</p>
+          <p>2. 複製並貼上到下方的文字框。</p>
+          <p>3. 點擊「解析並儲存」。</p>
         </div>
 
         <textarea 
@@ -266,11 +325,11 @@ export default function NatureQuizApp() {
           </button>
           <button 
             onClick={() => {
-              if (confirm("確定要恢復預設題庫嗎？這將清除您匯入的資料。")) {
+              showConfirm("確定要恢復預設題庫嗎？這將清除您匯入的所有資料。", () => {
                 setQuestionBank(INITIAL_DATA);
                 localStorage.removeItem('customQuestionBank');
-                alert("已恢復預設題庫");
-              }
+                showAlert("已恢復預設題庫", "重置成功");
+              });
             }}
             className="px-6 border-2 border-red-200 text-red-500 hover:bg-red-50 rounded-xl font-bold transition"
           >
@@ -283,7 +342,7 @@ export default function NatureQuizApp() {
 
   const renderQuiz = () => {
     const question = currentQuestions[currentQIndex];
-    if (!question) return <div>載入中...</div>;
+    if (!question) return <div className="p-10 text-center">載入中...</div>;
 
     return (
       <div className="max-w-3xl mx-auto min-h-screen p-4 flex flex-col justify-center animate-fadeIn">
@@ -351,6 +410,7 @@ export default function NatureQuizApp() {
   };
 
   const ResultView = () => {
+    // 確保只在組件掛載時儲存一次
     useEffect(() => { saveTitleRecord(score); }, []);
     const titleObj = getTitleObj(score);
 
@@ -418,7 +478,7 @@ export default function NatureQuizApp() {
   );
 
   return (
-    <div className="min-h-screen bg-[#F3F6F1] select-none font-sans text-stone-800">
+    <div className="min-h-screen bg-[#F3F6F1] select-none font-sans text-stone-800 relative">
       <style>{`
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #d6d3d1; border-radius: 10px; }
@@ -433,7 +493,11 @@ export default function NatureQuizApp() {
       {view === 'result' && <ResultView />}
       {view === 'titles' && renderTitles()}
       {view === 'admin' && renderAdmin()}
+      
+      {/* 全域訊息 Modal */}
+      <MessageModal />
 
+      {/* 密碼驗證 Modal */}
       {showPasswordModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl animate-bounceIn">
