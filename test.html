@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Trophy, History, Play, Trash2, Home, CheckCircle, XCircle, Leaf, ShieldAlert, Award, FileText, Settings, Save, AlertCircle } from 'lucide-react';
 
-// --- 稱號系統配置 (20個等級) ---
+// --- 1. 常數定義區 (移出元件外部以免重複宣告) ---
+
+// 稱號系統配置 (20個等級)
 const TITLES = [
   { min: 0, name: "初入叢林", color: "text-gray-500" },
   { min: 5, name: "尋路者", color: "text-stone-500" },
@@ -25,7 +27,7 @@ const TITLES = [
   { min: 95, name: "自然之神", color: "text-yellow-500 font-bold" },
 ];
 
-// --- 預設題庫 ---
+// 預設題庫
 const INITIAL_DATA = [
   { id: 1, question: "地球表面的岩石和土壤是大部分生物生長或活動的環境。", options: ["O", "X"], answer: "O" },
   { id: 2, question: "在野外，到處都看得到由岩石所形成各種地形景觀，不同地方的岩石種類都相同。", options: ["O", "X"], answer: "X" },
@@ -46,6 +48,42 @@ const INITIAL_DATA = [
   { id: 17, question: "下列哪一項不是山崩包含的部分？", options: ["乾旱", "地滑", "落石", "土石流"], answer: "乾旱" }
 ];
 
+// 獨立的 Modal 元件，避免在主元件內定義導致重新渲染
+const MessageModal = ({ isOpen, type, title, message, onConfirm, onClose }) => {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[100] p-4 animate-fadeIn">
+      <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl transform transition-all scale-100">
+        <div className="flex items-center gap-2 mb-4">
+          {type === 'confirm' ? <AlertCircle className="text-amber-500" /> : <ShieldAlert className="text-blue-500" />}
+          <h3 className="text-lg font-bold text-gray-800">{title}</h3>
+        </div>
+        <p className="text-gray-600 mb-6 whitespace-pre-wrap">{message}</p>
+        <div className="flex gap-3 justify-end">
+          {type === 'confirm' && (
+            <button 
+              onClick={onClose}
+              className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-bold transition"
+            >
+              取消
+            </button>
+          )}
+          <button 
+            onClick={() => {
+              if (onConfirm) onConfirm();
+              onClose();
+            }}
+            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-bold transition"
+          >
+            確定
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// --- 2. 主元件 ---
 export default function NatureQuizApp() {
   const [view, setView] = useState('home'); // home, quiz, result, titles, admin
   const [questionBank, setQuestionBank] = useState(INITIAL_DATA);
@@ -64,7 +102,7 @@ export default function NatureQuizApp() {
   // 題庫匯入相關狀態
   const [csvInput, setCsvInput] = useState('');
 
-  // 訊息模態框狀態 (取代 alert/confirm)
+  // 訊息模態框狀態
   const [msgModal, setMsgModal] = useState({ isOpen: false, type: 'info', title: '', message: '', onConfirm: null });
 
   // 初始化：讀取歷史紀錄與自訂題庫
@@ -82,7 +120,7 @@ export default function NatureQuizApp() {
     }
   }, []);
 
-  // 防作弊
+  // 防作弊：禁止右鍵與選取
   useEffect(() => {
     const preventDefault = (e) => e.preventDefault();
     document.addEventListener('contextmenu', preventDefault);
@@ -106,11 +144,32 @@ export default function NatureQuizApp() {
     setMsgModal({ ...msgModal, isOpen: false });
   };
 
-  // --- 邏輯函數 ---
+  // --- 核心邏輯函數 ---
+
+  const getTitleObj = (currentScore) => {
+    // 找到符合分數的最高等級稱號
+    return [...TITLES].reverse().find(t => currentScore >= t.min) || TITLES[0];
+  };
+
+  // 儲存歷史紀錄 (只在測驗結束時呼叫一次)
+  const saveTitleRecord = (finalScore) => {
+    const titleObj = getTitleObj(finalScore);
+    const newRecord = {
+      title: titleObj.name,
+      score: finalScore,
+      timestamp: new Date().toLocaleString('zh-TW', { hour12: false })
+    };
+    const newHistory = [newRecord, ...titleHistory];
+    setTitleHistory(newHistory);
+    localStorage.setItem('quizTitleHistory', JSON.stringify(newHistory));
+  };
 
   const startQuiz = () => {
+    // 確保題庫足夠
     const bank = questionBank.length > 0 ? questionBank : INITIAL_DATA;
+    // 隨機洗牌
     const shuffled = [...bank].sort(() => 0.5 - Math.random());
+    // 取前 20 題 (若不足 20 題則取全部)
     const selected = shuffled.slice(0, 20);
     setCurrentQuestions(selected);
     setCurrentQIndex(0);
@@ -121,7 +180,7 @@ export default function NatureQuizApp() {
   };
 
   const handleAnswer = (option) => {
-    if (feedback !== null) return;
+    if (feedback !== null) return; // 防止重複點擊
     const isCorrect = option === currentQuestions[currentQIndex].answer;
     setSelectedOption(option);
     if (isCorrect) {
@@ -134,29 +193,17 @@ export default function NatureQuizApp() {
 
   const nextQuestion = () => {
     if (currentQIndex < currentQuestions.length - 1) {
+      // 還有下一題
       setCurrentQIndex(prev => prev + 1);
       setFeedback(null);
       setSelectedOption(null);
     } else {
+      // 已經是最後一題，結束測驗
+      // 這裡直接儲存分數，避免在 ResultView 中使用 useEffect 導致無窮迴圈
+      saveTitleRecord(score);
       setView('result');
     }
   };
-
-  const getTitleObj = (currentScore) => {
-    return [...TITLES].reverse().find(t => currentScore >= t.min) || TITLES[0];
-  };
-
-  const saveTitleRecord = useCallback((finalScore) => {
-    const titleObj = getTitleObj(finalScore);
-    const newRecord = {
-      title: titleObj.name,
-      score: finalScore,
-      timestamp: new Date().toLocaleString('zh-TW', { hour12: false })
-    };
-    const newHistory = [newRecord, ...titleHistory];
-    setTitleHistory(newHistory);
-    localStorage.setItem('quizTitleHistory', JSON.stringify(newHistory));
-  }, [titleHistory]);
 
   const handlePasswordSubmit = () => {
     if (passwordInput === "7772041") {
@@ -187,21 +234,23 @@ export default function NatureQuizApp() {
       let idCounter = 1;
 
       rows.forEach((row, index) => {
-        // 移除可能存在的 \r
+        // 移除可能存在的 \r (Windows 換行符號)
         const cleanRow = row.replace(/\r/g, '');
+        // 簡單逗號分隔 (注意：此簡易解析不支援內容中包含逗號的情況)
         const cols = cleanRow.split(',').map(c => c.trim());
         
-        // 格式檢查: 題幹在第4欄 (index 3)
+        // 格式檢查: 題幹在第4欄 (index 3)，且不是標題列
         if (cols.length < 5 || !cols[3] || cols[3] === '題幹') return;
 
         const questionText = cols[3];
         const correctIndex = parseInt(cols[4]); // 1-based index
         
-        // 收集選項 (第 6 欄開始)
+        // 收集選項 (從第 6 欄開始: cols[5], cols[6], cols[7], cols[8])
         const rawOptions = [cols[5], cols[6], cols[7], cols[8]];
+        // 過濾掉空白選項 (支援是非題只有兩個選項的情況)
         const options = rawOptions.filter(opt => opt && opt !== '');
 
-        // 驗證
+        // 驗證資料完整性
         if (options.length >= 2 && !isNaN(correctIndex) && correctIndex <= options.length) {
           const correctVal = rawOptions[correctIndex - 1];
           newQuestions.push({
@@ -217,6 +266,7 @@ export default function NatureQuizApp() {
         setQuestionBank(newQuestions);
         localStorage.setItem('customQuestionBank', JSON.stringify(newQuestions));
         showAlert(`成功匯入 ${newQuestions.length} 題！`, "匯入成功");
+        setCsvInput(''); // 清空輸入框
         setView('home');
       } else {
         showAlert("無法解析任何題目，請檢查 CSV 格式是否正確。\n(需包含：...題幹, 正確選項代號, 選項1, 選項2...)", "解析失敗");
@@ -226,42 +276,7 @@ export default function NatureQuizApp() {
     }
   };
 
-  // --- 畫面元件 ---
-
-  // 共用訊息視窗 (Modal)
-  const MessageModal = () => {
-    if (!msgModal.isOpen) return null;
-    return (
-      <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[100] p-4 animate-fadeIn">
-        <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl transform transition-all scale-100">
-          <div className="flex items-center gap-2 mb-4">
-            {msgModal.type === 'confirm' ? <AlertCircle className="text-amber-500" /> : <ShieldAlert className="text-blue-500" />}
-            <h3 className="text-lg font-bold text-gray-800">{msgModal.title}</h3>
-          </div>
-          <p className="text-gray-600 mb-6 whitespace-pre-wrap">{msgModal.message}</p>
-          <div className="flex gap-3 justify-end">
-            {msgModal.type === 'confirm' && (
-              <button 
-                onClick={closeMsgModal}
-                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-bold transition"
-              >
-                取消
-              </button>
-            )}
-            <button 
-              onClick={() => {
-                if (msgModal.onConfirm) msgModal.onConfirm();
-                closeMsgModal();
-              }}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-bold transition"
-            >
-              確定
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  };
+  // --- 畫面渲染函數 (Render Functions) ---
 
   const renderHome = () => (
     <div className="flex flex-col items-center justify-center min-h-screen p-4 space-y-8 animate-fadeIn">
@@ -311,7 +326,7 @@ export default function NatureQuizApp() {
 
         <textarea 
           className="flex-1 w-full border-2 border-stone-200 rounded-xl p-4 font-mono text-sm focus:border-green-500 focus:outline-none resize-none mb-4"
-          placeholder="在此貼上 CSV 內容..."
+          placeholder="在此貼上 CSV 內容... (格式：作者,分數,秒數,題幹,正選,選項一...)"
           value={csvInput}
           onChange={(e) => setCsvInput(e.target.value)}
         />
@@ -409,9 +424,8 @@ export default function NatureQuizApp() {
     );
   };
 
-  const ResultView = () => {
-    // 確保只在組件掛載時儲存一次
-    useEffect(() => { saveTitleRecord(score); }, []);
+  const renderResult = () => {
+    // 此處不進行資料儲存，僅負責顯示結果，避免 React Render Cycle 問題
     const titleObj = getTitleObj(score);
 
     return (
@@ -490,12 +504,19 @@ export default function NatureQuizApp() {
       
       {view === 'home' && renderHome()}
       {view === 'quiz' && renderQuiz()}
-      {view === 'result' && <ResultView />}
+      {view === 'result' && renderResult()}
       {view === 'titles' && renderTitles()}
       {view === 'admin' && renderAdmin()}
       
       {/* 全域訊息 Modal */}
-      <MessageModal />
+      <MessageModal 
+        isOpen={msgModal.isOpen}
+        type={msgModal.type}
+        title={msgModal.title}
+        message={msgModal.message}
+        onConfirm={msgModal.onConfirm}
+        onClose={closeMsgModal}
+      />
 
       {/* 密碼驗證 Modal */}
       {showPasswordModal && (
