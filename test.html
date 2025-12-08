@@ -1,413 +1,782 @@
-import React, { useState, useEffect } from 'react';
-import { Trophy, Play, Trash2, Home, CheckCircle, XCircle, Leaf, ShieldAlert, Award, FileText, Settings, Save, AlertCircle } from 'lucide-react';
-
-// --- 常數定義 ---
-const TITLES = [
-  { min: 0, name: "初入叢林", color: "text-gray-500" },
-  { min: 5, name: "尋路者", color: "text-stone-500" },
-  { min: 10, name: "採集學徒", color: "text-stone-600" },
-  { min: 15, name: "森林觀察員", color: "text-green-800" },
-  { min: 20, name: "溪流旅人", color: "text-blue-400" },
-  { min: 25, name: "營地守衛", color: "text-stone-700" },
-  { min: 30, name: "追蹤者", color: "text-amber-700" },
-  { min: 35, name: "狩獵新手", color: "text-orange-600" },
-  { min: 40, name: "叢林斥候", color: "text-lime-600" },
-  { min: 45, name: "植物學者", color: "text-green-600" },
-  { min: 50, name: "野外求生專家", color: "text-emerald-600" },
-  { min: 55, name: "獸徑引路人", color: "text-teal-600" },
-  { min: 60, name: "森林遊俠", color: "text-cyan-600" },
-  { min: 65, name: "部落長老", color: "text-purple-600" },
-  { min: 70, name: "自然祭司", color: "text-violet-600" },
-  { min: 75, name: "大地守護者", color: "text-indigo-600" },
-  { min: 80, name: "森林之王", color: "text-rose-600" },
-  { min: 85, name: "荒野傳奇", color: "text-fuchsia-600" },
-  { min: 90, name: "萬物導師", color: "text-yellow-600" },
-  { min: 95, name: "自然之神", color: "text-yellow-500 font-bold" },
-];
-
-const INITIAL_DATA = [
-  { id: 1, question: "地球表面的岩石和土壤是大部分生物生長或活動的環境。", options: ["O", "X"], answer: "O" },
-  { id: 2, question: "在野外，到處都看得到由岩石所形成各種地形景觀，不同地方的岩石種類都相同。", options: ["O", "X"], answer: "X" },
-  { id: 3, question: "出外旅遊，看到漂亮或喜歡的岩石，都可以敲下來帶回家。", options: ["O", "X"], answer: "X" },
-  { id: 4, question: "石灰岩主要是由方解石所組成的。", options: ["O", "X"], answer: "O" },
-  { id: 5, question: "花崗岩是由長石、黑雲母或白雲母、石英等礦物所組成的。", options: ["O", "X"], answer: "O" },
-];
-
-// --- 輔助：安全存取 LocalStorage ---
-const safeGetStorage = (key, defaultVal) => {
-  try {
-    const item = localStorage.getItem(key);
-    return item ? JSON.parse(item) : defaultVal;
-  } catch (e) {
-    console.warn('Storage access error:', e);
-    return defaultVal;
-  }
-};
-
-const safeSetStorage = (key, val) => {
-  try {
-    localStorage.setItem(key, JSON.stringify(val));
-  } catch (e) {
-    console.warn('Storage write error:', e);
-  }
-};
-
-const safeRemoveStorage = (key) => {
-  try {
-    localStorage.removeItem(key);
-  } catch (e) {
-    console.warn('Storage remove error:', e);
-  }
-};
-
-// --- 子元件定義 (Sub-Components) ---
-
-const HomeView = ({ onStart, onViewTitles, onViewAdmin, count }) => (
-  <div className="flex flex-col items-center justify-center min-h-screen p-4 space-y-8 animate-fadeIn">
-    <div className="text-center space-y-4">
-      <div className="inline-block p-4 bg-green-100 rounded-full mb-4 shadow-inner">
-        <Leaf size={64} className="text-green-600" />
-      </div>
-      <h1 className="text-4xl md:text-5xl font-bold text-green-800 tracking-wider">自然生態大會考</h1>
-      <p className="text-lg text-stone-600 font-medium">目前的題庫數量：{count} 題</p>
-    </div>
-    <div className="flex flex-col gap-4 w-full max-w-md">
-      <button onClick={onStart} className="bg-green-600 hover:bg-green-700 text-white py-4 px-6 rounded-xl shadow-lg flex items-center justify-center gap-2 text-xl font-bold transition transform hover:scale-105">
-        <Play size={24} /> 開始測驗
-      </button>
-      <button onClick={onViewTitles} className="bg-amber-600 hover:bg-amber-700 text-white py-4 px-6 rounded-xl shadow-lg flex items-center justify-center gap-2 text-xl font-bold transition transform hover:scale-105">
-        <Trophy size={24} /> 稱號圖鑑
-      </button>
-      <button onClick={onViewAdmin} className="bg-stone-600 hover:bg-stone-700 text-white py-3 px-6 rounded-xl shadow flex items-center justify-center gap-2 font-bold transition">
-        <Settings size={20} /> 題庫管理
-      </button>
-    </div>
-  </div>
-);
-
-const QuizView = ({ question, index, total, score, feedback, selectedOption, onAnswer, onNext }) => {
-  if (!question) return <div className="p-10 text-center">載入中...</div>;
-  return (
-    <div className="max-w-3xl mx-auto min-h-screen p-4 flex flex-col justify-center animate-fadeIn">
-      <div className="w-full bg-stone-200 rounded-full h-4 mb-6 overflow-hidden shadow-inner">
-        <div className="bg-green-500 h-4 rounded-full transition-all duration-500 ease-out" style={{ width: `${((index + 1) / total) * 100}%` }}></div>
-      </div>
-      <div className="flex justify-between items-center mb-4 text-stone-600 font-bold">
-        <span>第 {index + 1} / {total} 題</span>
-        <span>得分: {score}</span>
-      </div>
-      <div className="bg-white rounded-2xl shadow-xl p-6 md:p-10 mb-6 border-l-8 border-green-600 min-h-[160px] flex items-center">
-        <h2 className="text-xl md:text-2xl font-bold text-gray-800 leading-relaxed">{question.question}</h2>
-      </div>
-      <div className="grid grid-cols-1 gap-4">
-        {question.options.map((opt, idx) => {
-          let btnClass = "p-4 rounded-xl text-lg font-medium border-2 transition-all duration-200 shadow-md text-left flex items-center justify-between ";
-          if (feedback) {
-            if (opt === question.answer) btnClass += "bg-green-100 border-green-500 text-green-800";
-            else if (opt === selectedOption && opt !== question.answer) btnClass += "bg-red-100 border-red-500 text-red-800";
-            else btnClass += "bg-stone-50 border-stone-200 text-stone-400 opacity-50";
-          } else {
-            btnClass += "bg-white border-stone-200 hover:border-green-400 hover:bg-green-50 text-stone-700 hover:shadow-lg";
-          }
-          return (
-            <button key={idx} onClick={() => onAnswer(opt)} disabled={feedback !== null} className={btnClass}>
-              <span>{opt}</span>
-              {feedback && opt === question.answer && <CheckCircle className="text-green-600" />}
-              {feedback && opt === selectedOption && opt !== question.answer && <XCircle className="text-red-600" />}
-            </button>
-          );
-        })}
-      </div>
-      <div className="mt-8 h-20 flex items-center justify-center">
-        {feedback && (
-          <button onClick={onNext} className="bg-stone-800 text-white px-8 py-3 rounded-xl hover:bg-black transition shadow-lg font-bold text-lg animate-bounceIn">
-            {index === total - 1 ? "查看結果" : "下一題"}
-          </button>
-        )}
-      </div>
-    </div>
-  );
-};
-
-const ResultView = ({ score, titleObj, onHome }) => (
-  <div className="flex flex-col items-center justify-center min-h-screen p-4 animate-fadeIn">
-    <div className="bg-white rounded-3xl shadow-2xl p-8 md:p-12 max-w-lg w-full text-center relative overflow-hidden">
-      <div className="absolute top-0 left-0 w-full h-4 bg-gradient-to-r from-green-400 to-blue-500"></div>
-      <div className="mb-6 flex justify-center"><Trophy size={80} className="text-yellow-400 drop-shadow-lg" /></div>
-      <h2 className="text-3xl font-bold text-stone-800 mb-2">測驗完成</h2>
-      <div className="text-6xl font-black text-green-600 mb-4">{score} <span className="text-2xl text-stone-500 font-medium">分</span></div>
-      <div className="bg-stone-50 rounded-xl p-4 mb-6">
-        <p className="text-stone-500 text-sm uppercase tracking-widest">獲得稱號</p>
-        <h3 className={`text-2xl font-bold ${titleObj.color}`}>{titleObj.name}</h3>
-      </div>
-      <button onClick={onHome} className="w-full bg-stone-700 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-stone-800 transition">
-        <Home size={20} /> 返回首頁
-      </button>
-    </div>
-  </div>
-);
-
-const TitlesView = ({ history, titles, onDelete, onHome }) => (
-  <div className="max-w-4xl mx-auto min-h-screen p-4 md:p-8 animate-fadeIn">
-    <div className="flex justify-between items-center mb-8">
-      <button onClick={onHome} className="flex items-center gap-2 text-stone-600 hover:text-green-700 font-bold"><Home size={24} /> 返回首頁</button>
-      <h2 className="text-2xl md:text-3xl font-bold text-stone-800 flex items-center gap-2"><Award className="text-amber-500" /> 榮譽殿堂</h2>
-    </div>
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-      <div className="bg-white rounded-2xl shadow-xl p-6 h-[500px] flex flex-col">
-        <div className="flex justify-between items-center mb-4 pb-2 border-b">
-          <h3 className="text-xl font-bold text-stone-700">歷史紀錄</h3>
-          <button onClick={onDelete} className="text-red-400 hover:text-red-600 text-sm flex gap-1"><Trash2 size={16}/> 刪除</button>
-        </div>
-        <div className="overflow-y-auto flex-1 space-y-2 custom-scrollbar">
-          {history.length === 0 ? <p className="text-center text-stone-400 mt-10">尚無紀錄</p> : 
-            history.map((r, i) => (
-              <div key={i} className="flex justify-between bg-stone-50 p-3 rounded hover:bg-green-50">
-                <div><div className="font-bold text-green-700">{r.title}</div><div className="text-xs text-stone-400">{r.timestamp}</div></div>
-                <div className="font-bold text-stone-600">{r.score}分</div>
-              </div>
-            ))
-          }
-        </div>
-      </div>
-      <div className="bg-white/80 rounded-2xl shadow-xl p-6 h-[500px] flex flex-col">
-        <h3 className="text-xl font-bold text-stone-700 mb-4 border-b pb-2">稱號列表</h3>
-        <div className="overflow-y-auto flex-1 grid grid-cols-1 gap-2 custom-scrollbar">
-          {titles.map((t, i) => (
-            <div key={i} className="flex items-center gap-3 p-2 hover:bg-white rounded">
-              <div className="w-10 h-10 flex items-center justify-center rounded-full bg-stone-100 text-xs text-stone-400">{t.min}+</div>
-              <div className={`font-bold ${t.color}`}>{t.name}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  </div>
-);
-
-const AdminView = ({ csvInput, setCsvInput, onParse, onReset, onHome }) => (
-  <div className="max-w-4xl mx-auto min-h-screen p-6 animate-fadeIn flex flex-col">
-    <div className="flex justify-between items-center mb-6">
-      <h2 className="text-3xl font-bold text-stone-800 flex items-center gap-2"><FileText className="text-green-600" /> 匯入題庫 (CSV)</h2>
-      <button onClick={onHome} className="flex items-center gap-2 text-stone-600 font-bold hover:text-green-700"><Home size={20} /> 返回</button>
-    </div>
-    <div className="bg-white p-6 rounded-2xl shadow-xl flex-1 flex flex-col">
-      <div className="mb-4 text-stone-600 text-sm bg-blue-50 p-4 rounded-lg border border-blue-100">
-        <p className="font-bold mb-2">使用說明：</p>
-        <p>1. 複製 Excel/CSV 資料（含標題列）。</p>
-        <p>2. 貼上至下方文字框。</p>
-        <p>3. 點擊「解析並儲存」。</p>
-      </div>
-      <textarea className="flex-1 w-full border-2 border-stone-200 rounded-xl p-4 font-mono text-sm focus:border-green-500 focus:outline-none resize-none mb-4"
-        placeholder="在此貼上 CSV 內容..." value={csvInput} onChange={(e) => setCsvInput(e.target.value)} />
-      <div className="flex gap-4">
-        <button onClick={onParse} className="flex-1 bg-green-600 text-white py-3 rounded-xl font-bold hover:bg-green-700 transition flex items-center justify-center gap-2"><Save size={20} /> 解析並儲存</button>
-        <button onClick={onReset} className="px-6 border-2 border-red-200 text-red-500 hover:bg-red-50 rounded-xl font-bold transition">恢復預設</button>
-      </div>
-    </div>
-  </div>
-);
-
-const MessageModal = ({ isOpen, type, title, message, onConfirm, onClose }) => {
-  if (!isOpen) return null;
-  return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[100] p-4 animate-fadeIn">
-      <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl transform transition-all scale-100">
-        <div className="flex items-center gap-2 mb-4">
-          {type === 'confirm' ? <AlertCircle className="text-amber-500" /> : <ShieldAlert className="text-blue-500" />}
-          <h3 className="text-lg font-bold text-gray-800">{title}</h3>
-        </div>
-        <p className="text-gray-600 mb-6 whitespace-pre-wrap">{message}</p>
-        <div className="flex gap-3 justify-end">
-          {type === 'confirm' && <button onClick={onClose} className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-bold transition">取消</button>}
-          <button onClick={() => { if (onConfirm) onConfirm(); onClose(); }} className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-bold transition">確定</button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// --- 主應用程式元件 ---
-export default function NatureQuizApp() {
-  const [view, setView] = useState('home');
-  const [questionBank, setQuestionBank] = useState(INITIAL_DATA);
-  const [currentQuestions, setCurrentQuestions] = useState([]);
-  const [currentQIndex, setCurrentQIndex] = useState(0);
-  const [score, setScore] = useState(0);
-  const [feedback, setFeedback] = useState(null);
-  const [selectedOption, setSelectedOption] = useState(null);
-  const [titleHistory, setTitleHistory] = useState([]);
-  
-  const [passwordInput, setPasswordInput] = useState('');
-  const [showPasswordModal, setShowPasswordModal] = useState(false);
-  const [passwordAction, setPasswordAction] = useState(null); 
-  const [csvInput, setCsvInput] = useState('');
-  const [msgModal, setMsgModal] = useState({ isOpen: false, type: 'info', title: '', message: '', onConfirm: null });
-
-  useEffect(() => {
-    setTitleHistory(safeGetStorage('quizTitleHistory', []));
-    const savedBank = safeGetStorage('customQuestionBank', null);
-    if (savedBank && savedBank.length > 0) setQuestionBank(savedBank);
-  }, []);
-
-  useEffect(() => {
-    const preventDefault = (e) => e.preventDefault();
-    document.addEventListener('contextmenu', preventDefault);
-    document.addEventListener('selectstart', preventDefault);
-    return () => {
-      document.removeEventListener('contextmenu', preventDefault);
-      document.removeEventListener('selectstart', preventDefault);
-    };
-  }, []);
-
-  const showAlert = (message, title = "提示") => setMsgModal({ isOpen: true, type: 'info', title, message, onConfirm: null });
-  const showConfirm = (message, onConfirm, title = "確認") => setMsgModal({ isOpen: true, type: 'confirm', title, message, onConfirm });
-  const closeMsgModal = () => setMsgModal(prev => ({ ...prev, isOpen: false }));
-
-  const startQuiz = () => {
-    const bank = questionBank.length > 0 ? questionBank : INITIAL_DATA;
-    const shuffled = [...bank].sort(() => 0.5 - Math.random());
-    setCurrentQuestions(shuffled.slice(0, 20));
-    setCurrentQIndex(0);
-    setScore(0);
-    setFeedback(null);
-    setSelectedOption(null);
-    setView('quiz');
-  };
-
-  const handleAnswer = (option) => {
-    if (feedback !== null) return;
-    const isCorrect = option === currentQuestions[currentQIndex].answer;
-    setSelectedOption(option);
-    if (isCorrect) {
-      setScore(prev => prev + 5);
-      setFeedback('correct');
-    } else {
-      setFeedback('wrong');
-    }
-  };
-
-  const nextQuestion = () => {
-    if (currentQIndex < currentQuestions.length - 1) {
-      setCurrentQIndex(prev => prev + 1);
-      setFeedback(null);
-      setSelectedOption(null);
-    } else {
-      // 結束測驗，立即儲存
-      const finalScore = score + (feedback === 'correct' ? 0 : 0); // score already updated
-      // 注意：這裡 score 是 state，可能還沒更新最後一題的分數嗎？
-      // handleAnswer 中 setScore 是 async。
-      // 當使用者按「下一題」時，handleAnswer 早就跑完了，所以 score 應該是準確的。
-      // 唯獨「最後一題答完顯示結果」的按鈕，我們需確保。
-      // 上面 render 中，最後一題顯示的是 "查看結果"，點擊觸發 nextQuestion。
-      // 此時 score 已經包含了最後一題的分數（如果答對）。
-      
-      const titleObj = [...TITLES].reverse().find(t => score >= t.min) || TITLES[0];
-      const newRecord = {
-        title: titleObj.name,
-        score: score,
-        timestamp: new Date().toLocaleString('zh-TW', { hour12: false })
-      };
-      const newHistory = [newRecord, ...titleHistory];
-      setTitleHistory(newHistory);
-      safeSetStorage('quizTitleHistory', newHistory);
-      setView('result');
-    }
-  };
-
-  const handlePasswordSubmit = () => {
-    if (passwordInput === "7772041") {
-      if (passwordAction === 'deleteHistory') {
-        safeRemoveStorage('quizTitleHistory');
-        setTitleHistory([]);
-        showAlert("歷史紀錄已成功刪除。");
-      } else if (passwordAction === 'enterAdmin') {
-        setView('admin');
-      }
-      setShowPasswordModal(false);
-      setPasswordInput('');
-    } else {
-      showAlert("密碼錯誤！", "驗證失敗");
-    }
-  };
-
-  const parseAndSaveCSV = () => {
-    if (!csvInput.trim()) { showAlert("請輸入 CSV 內容！"); return; }
-    try {
-      const rows = csvInput.trim().split('\n');
-      const newQuestions = [];
-      let idCounter = 1;
-      rows.forEach((row) => {
-        const cleanRow = row.replace(/\r/g, '');
-        const cols = cleanRow.split(',').map(c => c.trim());
-        // 檢查: 題幹在 index 3, 且排除表頭
-        if (cols.length < 5 || !cols[3] || cols[3] === '題幹') return;
-
-        const questionText = cols[3];
-        const correctIndex = parseInt(cols[4]); 
-        const rawOptions = [cols[5], cols[6], cols[7], cols[8]];
-        const options = rawOptions.filter(opt => opt && opt !== '');
-
-        if (options.length >= 2 && !isNaN(correctIndex) && correctIndex <= options.length) {
-          newQuestions.push({
-            id: idCounter++,
-            question: questionText,
-            options: options,
-            answer: rawOptions[correctIndex - 1]
-          });
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>變動的大地挑戰賽</title>
+    <!-- 引入 Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入 React 和 ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <!-- 引入 Babel 用於解析 JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <style>
+        /* 禁止選取文字的 CSS 設定 */
+        body {
+            -webkit-user-select: none; /* Safari */
+            -moz-user-select: none; /* Firefox */
+            -ms-user-select: none; /* IE10+/Edge */
+            user-select: none; /* Standard */
         }
-      });
 
-      if (newQuestions.length > 0) {
-        setQuestionBank(newQuestions);
-        safeSetStorage('customQuestionBank', newQuestions);
-        showAlert(`成功匯入 ${newQuestions.length} 題！`);
-        setCsvInput('');
-        setView('home');
-      } else {
-        showAlert("解析失敗，找不到有效題目。\n請確保第4欄是題目，第5欄是答案代號(1-4)。");
-      }
-    } catch (e) {
-      showAlert("發生錯誤：" + e.message);
-    }
-  };
+        /* 簡單的動畫定義 */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-slide-up {
+            animation: slideUp 0.3s ease-out forwards;
+        }
+        /* 自定義捲軸樣式 */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<!-- 加入事件監聽以防止右鍵、複製、剪下 -->
+<body 
+    class="bg-slate-100 font-sans text-slate-800"
+    oncontextmenu="return false" 
+    onselectstart="return false" 
+    oncopy="return false" 
+    oncut="return false"
+    ondragstart="return false"
+>
+    <div id="root"></div>
 
-  return (
-    <div className="min-h-screen bg-[#F3F6F1] select-none font-sans text-stone-800 relative">
-      <style>{`
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #d6d3d1; border-radius: 10px; }
-        .animate-fadeIn { animation: fadeIn 0.5s ease-out; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes bounceIn { 0% { transform: scale(0.9); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
-        .animate-bounceIn { animation: bounceIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-      `}</style>
+    <script type="text/babel">
+        const { useState, useEffect } = React;
 
-      {view === 'home' && <HomeView onStart={startQuiz} onViewTitles={() => setView('titles')} onViewAdmin={() => { setPasswordAction('enterAdmin'); setShowPasswordModal(true); }} count={questionBank.length} />}
-      
-      {view === 'quiz' && <QuizView question={currentQuestions[currentQIndex]} index={currentQIndex} total={currentQuestions.length} score={score} feedback={feedback} selectedOption={selectedOption} onAnswer={handleAnswer} onNext={nextQuestion} />}
-      
-      {view === 'result' && <ResultView score={score} titleObj={[...TITLES].reverse().find(t => score >= t.min) || TITLES[0]} onHome={() => setView('home')} />}
-      
-      {view === 'titles' && <TitlesView history={titleHistory} titles={TITLES} onDelete={() => { setPasswordAction('deleteHistory'); setShowPasswordModal(true); }} onHome={() => setView('home')} />}
-      
-      {view === 'admin' && <AdminView csvInput={csvInput} setCsvInput={setCsvInput} onParse={parseAndSaveCSV} onReset={() => showConfirm("確定恢復預設題庫？自訂題庫將清空。", () => { setQuestionBank(INITIAL_DATA); safeRemoveStorage('customQuestionBank'); showAlert("已重置"); })} onHome={() => setView('home')} />}
+        // --- 圖示組件 (SVG Paths) ---
+        const Icons = {
+            Globe: ({className=""}) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>,
+            Activity: ({size=24, className=""}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>,
+            Mountain: ({className=""}) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m8 3 4 8 5-5 5 15H2L8 3z"/></svg>,
+            Pickaxe: ({size=24, className=""}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M14.5 5.5C18.5 2.5 22 2 22 2a6 6 0 0 0-6 6c0 0 .5 3.5-2.5 7.5"/><path d="M16.5 7.5 14 5"/><path d="M22 2 12.5 11.5"/><path d="m5 14-2 2 3 3 2-2"/><path d="m9 18-3 3 5 5 3-3"/></svg>,
+            AlertCircle: ({size=24, className=""}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>,
+            ChevronRight: ({className=""}) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m9 18 6-6-6-6"/></svg>,
+            ChevronLeft: ({className=""}) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m15 18-6-6 6-6"/></svg>,
+            CheckCircle: ({className=""}) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>,
+            XCircle: ({className=""}) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>,
+            Trophy: ({size=24, className=""}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>,
+            RefreshCw: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>,
+            History: ({size=24}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>,
+            Trash2: ({size=20}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
+        };
 
-      <MessageModal isOpen={msgModal.isOpen} type={msgModal.type} title={msgModal.title} message={msgModal.message} onConfirm={msgModal.onConfirm} onClose={closeMsgModal} />
+        const QuizApp = () => {
+            // 遊戲狀態
+            const [gameState, setGameState] = useState('start');
+            const [quizQuestions, setQuizQuestions] = useState([]);
+            const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+            const [score, setScore] = useState(0);
+            const [selectedOption, setSelectedOption] = useState(null);
+            const [showFeedback, setShowFeedback] = useState(false);
+            const [feedback, setFeedback] = useState({ isCorrect: false, text: '' });
+            
+            // 歷史紀錄
+            const [history, setHistory] = useState([]);
 
-      {showPasswordModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl animate-bounceIn">
-            <div className="flex items-center gap-2 text-red-600 font-bold mb-4"><ShieldAlert /> 安全驗證</div>
-            <p className="text-stone-600 mb-4">請輸入密碼以繼續操作。</p>
-            <input type="password" value={passwordInput} onChange={(e) => setPasswordInput(e.target.value)} className="w-full border-2 border-stone-200 rounded-lg p-3 mb-4 focus:outline-none focus:border-red-400" placeholder="請輸入密碼" />
-            <div className="flex gap-3">
-              <button onClick={() => { setShowPasswordModal(false); setPasswordInput(''); }} className="flex-1 py-2 bg-stone-200 rounded-lg font-bold">取消</button>
-              <button onClick={handlePasswordSubmit} className="flex-1 py-2 bg-red-500 text-white rounded-lg font-bold">確認</button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
+            useEffect(() => {
+                const savedHistory = localStorage.getItem('quizHistory');
+                if (savedHistory) {
+                    setHistory(JSON.parse(savedHistory));
+                }
+            }, []);
+
+            // --- 完整題庫 (300題) ---
+            const fullQuestionPool = [
+                {id:1,text:"地球表面的岩石和土壤是大部分生物生長或活動的環境。",options:["O","X"],correctIndex:0},
+                {id:2,text:"在野外，到處都看得到由岩石所形成各種地形景觀，不同地方的岩石種類都相同。",options:["O","X"],correctIndex:1},
+                {id:3,text:"出外旅遊，看到漂亮或喜歡的岩石，都可以敲下來帶回家。",options:["O","X"],correctIndex:1},
+                {id:4,text:"石灰岩主要是由方解石所組成的。",options:["O","X"],correctIndex:0},
+                {id:5,text:"花崗岩是由長石、黑雲母或白雲母、石英等礦物所組成的。",options:["O","X"],correctIndex:0},
+                {id:6,text:"花崗岩上看起來有點透明的部分是石英。",options:["O","X"],correctIndex:0},
+                {id:7,text:"花崗岩是由石英一種礦物所組成的。",options:["O","X"],correctIndex:1},
+                {id:8,text:"沉積岩中的頁岩是由長石、黑雲母或白雲母、石英等礦物所組成的。",options:["O","X"],correctIndex:1},
+                {id:9,text:"依據岩石的成因，可以把岩石分成火成岩、變質岩、沉積岩三大類。",options:["O","X"],correctIndex:0},
+                {id:10,text:"科學家依據岩石形成的地點，可以把岩石分成火成岩、沉積岩兩大類。",options:["O","X"],correctIndex:1},
+                {id:11,text:"火成岩中常見的岩石有安山岩、花崗岩、玄武岩等。",options:["O","X"],correctIndex:0},
+                {id:12,text:"建築常用到的花崗岩屬於沉積岩。",options:["O","X"],correctIndex:1},
+                {id:13,text:"大理岩屬於變質岩，可以作為建築材料。",options:["O","X"],correctIndex:0},
+                {id:14,text:"礦物的硬度是指礦物抵抗刻劃或磨損的能力。",options:["O","X"],correctIndex:0},
+                {id:15,text:"滑石的硬度比石英小。",options:["O","X"],correctIndex:0},
+                {id:16,text:"石英的硬度比方解石大。",options:["O","X"],correctIndex:0},
+                {id:17,text:"滑石的硬度很小，用指甲就可以在上面留下刻痕。",options:["O","X"],correctIndex:0},
+                {id:18,text:"所有的岩石經過風化作用後，最後都會變成土壤。",options:["O","X"],correctIndex:0},
+                {id:19,text:"花崗岩中粉紅色的部分是長石。",options:["O","X"],correctIndex:0},
+                {id:20,text:"花崗岩中黑色的部分是石英。",options:["O","X"],correctIndex:1},
+                {id:21,text:"花崗岩中白色的部分是雲母。",options:["O","X"],correctIndex:1},
+                {id:22,text:"用稀鹽酸滴在岩石上，如果會產生氣泡，表示這個岩石含有方解石成分。",options:["O","X"],correctIndex:0},
+                {id:23,text:"石灰岩的主要成分是石英，所以滴上稀鹽酸會產生氣泡。",options:["O","X"],correctIndex:1},
+                {id:24,text:"在河邊撿石頭時，應該挑選表面有裂痕或風化嚴重的石頭來觀察。",options:["O","X"],correctIndex:1},
+                {id:25,text:"在進行岩石或礦物的硬度測試時，為了安全，不可以直接拿兩塊石頭互相刻劃。",options:["O","X"],correctIndex:1},
+                {id:26,text:"石英的顏色有很多種，水晶就是石英的一種。",options:["O","X"],correctIndex:0},
+                {id:27,text:"石英可以用來製作玻璃、手錶等。",options:["O","X"],correctIndex:0},
+                {id:28,text:"岩石是由一種或多種礦物所組成的。",options:["O","X"],correctIndex:0},
+                {id:29,text:"滑石是硬度很大的礦物，可以用來切割玻璃。",options:["O","X"],correctIndex:1},
+                {id:30,text:"石墨是黑色的，可以作為鉛筆筆芯的原料。",options:["O","X"],correctIndex:0},
+                {id:31,text:"硫磺是黃色的，聞起來有一股特殊的氣味。",options:["O","X"],correctIndex:0},
+                {id:32,text:"雲母可以一層一層剝下來，可以用來製作絕緣體。",options:["O","X"],correctIndex:0},
+                {id:33,text:"土壤是由岩石風化變成的，裡面有礦物質、空氣、水和腐植質。",options:["O","X"],correctIndex:0},
+                {id:34,text:"所有的土壤顏色都是黑色的。",options:["O","X"],correctIndex:1},
+                {id:35,text:"流水、風、冰川、海浪都是造成岩石風化的原因。",options:["O","X"],correctIndex:0},
+                {id:36,text:"植物的根生長在岩石縫隙中，會把岩石撐破，這也是一種風化作用。",options:["O","X"],correctIndex:0},
+                {id:37,text:"岩石受到太陽曝曬，熱脹冷縮，容易產生裂縫而破碎。",options:["O","X"],correctIndex:0},
+                {id:38,text:"河流上游的岩石通常比較大塊，且有稜有角。",options:["O","X"],correctIndex:0},
+                {id:39,text:"河流下游的石頭通常比較圓滑，是因為被流水搬運過程中互相碰撞磨損造成的。",options:["O","X"],correctIndex:0},
+                {id:40,text:"地震是一種自然現象，無法完全預測，平時要做好防災準備。",options:["O","X"],correctIndex:0},
+                {id:41,text:"地震發生時，如果人在室內，應該趕快把門窗打開，然後跑到戶外。",options:["O","X"],correctIndex:1},
+                {id:42,text:"地震發生時，如果人在室外，應該遠離建築物、招牌、樹木等，尋找空曠的地方避難。",options:["O","X"],correctIndex:0},
+                {id:43,text:"臺灣位於板塊交界處，所以地震頻繁。",options:["O","X"],correctIndex:0},
+                {id:44,text:"海浪不斷拍打海岸，會侵蝕海岸，形成海蝕地形。",options:["O","X"],correctIndex:0},
+                {id:45,text:"風吹起沙子撞擊岩石，會對岩石造成侵蝕作用。",options:["O","X"],correctIndex:0},
+                {id:46,text:"野柳的女王頭是因為海水侵蝕和風化作用形成的。",options:["O","X"],correctIndex:0},
+                {id:47,text:"大理岩是由石灰岩變質而成的。",options:["O","X"],correctIndex:0},
+                {id:48,text:"板岩是由頁岩變質而成的，原住民常利用板岩蓋石板屋。",options:["O","X"],correctIndex:0},
+                {id:49,text:"安山岩是火成岩，常見於陽明山國家公園。",options:["O","X"],correctIndex:0},
+                {id:50,text:"玄武岩是火成岩，澎湖群島主要由玄武岩構成。",options:["O","X"],correctIndex:0},
+                {id:51,text:"花崗岩是金門常見的岩石。",options:["O","X"],correctIndex:0},
+                {id:52,text:"所有的礦物都有磁性。",options:["O","X"],correctIndex:1},
+                {id:53,text:"磁鐵礦具有磁性，可以吸引鐵製品。",options:["O","X"],correctIndex:0},
+                {id:54,text:"方解石具有雙折射的特性，透過方解石看字體會出現兩個影像。",options:["O","X"],correctIndex:0},
+                {id:55,text:"土壤中的腐植質主要是由岩石碎屑變成的。",options:["O","X"],correctIndex:1},
+                {id:56,text:"土壤不僅能讓植物生長，也是許多小動物的家。",options:["O","X"],correctIndex:0},
+                {id:57,text:"我們應該愛護土壤資源，避免土壤汙染和流失。",options:["O","X"],correctIndex:0},
+                {id:58,text:"在野外觀察岩石時，可以隨意敲打岩石，不必顧慮安全。",options:["O","X"],correctIndex:1},
+                {id:59,text:"有些岩石可以用來做成飾品或藝術品。",options:["O","X"],correctIndex:0},
+                {id:60,text:"岩石和礦物是地球上重要的自然資源。",options:["O","X"],correctIndex:0},
+                {id:61,text:"石膏可以用來製作粉筆和豆腐。",options:["O","X"],correctIndex:0},
+                {id:62,text:"爽身粉的原料是滑石。",options:["O","X"],correctIndex:0},
+                {id:63,text:"鑽石是硬度最高的礦物。",options:["O","X"],correctIndex:0},
+                {id:64,text:"岩石依形成過程分為火成岩、沉積岩和變質岩，這三種岩石不會互相轉變。",options:["O","X"],correctIndex:1},
+                {id:65,text:"沉積岩通常具有層狀構造，且容易發現化石。",options:["O","X"],correctIndex:0},
+                {id:66,text:"化石只能在沉積岩中發現。",options:["O","X"],correctIndex:1},
+                {id:67,text:"臺灣東部盛產大理石。",options:["O","X"],correctIndex:0},
+                {id:68,text:"太魯閣峽谷主要是由大理岩構成的。",options:["O","X"],correctIndex:0},
+                {id:69,text:"北投石是唯一以臺灣地名命名的礦物。",options:["O","X"],correctIndex:0},
+                {id:70,text:"我們可以使用放大鏡來觀察岩石或礦物的細部特徵。",options:["O","X"],correctIndex:0},
+                {id:71,text:"下列哪一種岩石是由岩漿冷卻凝固形成的？",options:["沉積岩","火成岩","變質岩","化石"],correctIndex:1},
+                {id:72,text:"下列哪一種岩石通常具有層狀構造？",options:["火成岩","沉積岩","變質岩","隕石"],correctIndex:1},
+                {id:73,text:"下列哪一種岩石是由原本的岩石經過高溫高壓變質而成的？",options:["火成岩","沉積岩","變質岩","流星"],correctIndex:2},
+                {id:74,text:"下列哪一種岩石是安山岩？",options:["由岩漿冷卻形成，常見於陽明山","由泥沙堆積形成","由珊瑚礁演變而成","經過高溫高壓變質而成"],correctIndex:0},
+                {id:75,text:"大理岩是由哪一種岩石變質而成的？",options:["花崗岩","頁岩","石灰岩","砂岩"],correctIndex:2},
+                {id:76,text:"板岩是由哪一種岩石變質而成的？",options:["花崗岩","頁岩","石灰岩","砂岩"],correctIndex:1},
+                {id:77,text:"石灰岩變質後會變成什麼岩石？",options:["大理岩","板岩","片麻岩","石英岩"],correctIndex:0},
+                {id:78,text:"頁岩變質後會變成什麼岩石？",options:["片麻岩","雲母","石墨","方解石"],correctIndex:0},
+                {id:79,text:"下列哪一種物質是由多種礦物所構成的？",options:["硫磺","雲母","花崗岩","石墨"],correctIndex:2},
+                {id:80,text:"哪一種礦物的顏色是黃色的？",options:["滑石","硫磺","方解石","石墨"],correctIndex:1},
+                {id:81,text:"下列哪一種礦物的外表顏色是黑色的？",options:["石墨","石英","硫磺","方解石"],correctIndex:0},
+                {id:82,text:"下列四種物質，哪一種是屬於礦物呢？",options:["石灰岩","方解石","花崗岩","玄武岩"],correctIndex:1},
+                {id:83,text:"小貝想要觀察桌上的礦物，請問哪一種做法最不適當？",options:["用手觸摸","用放大鏡觀察","在瓷磚背面刻劃","用火燒看看"],correctIndex:3},
+                {id:84,text:"不可以使用什麼方法觀察礦物？",options:["摸摸看","互相刻劃觀察硬度","搧聞氣味","嘗嘗看味道"],correctIndex:3},
+                {id:85,text:"下列哪一個小朋友提議觀察礦物的方式不適合？",options:["沐沐：用放大鏡觀察礦物的外表","優優：用手摸摸看顆粒粗細","樂樂：搧聞氣味","米米：用牙齒咬比較硬度"],correctIndex:3},
+                {id:86,text:"雲母的主要特徵是什麼？",options:["可以像書本一樣一片片剝下來","非常硬，硬度最高","有磁性，可指方向","透明無色像玻璃"],correctIndex:0},
+                {id:87,text:"用稀鹽酸滴在岩石上，如果會產生氣泡，表示這個岩石含有什麼成分？",options:["石英","長石","方解石","雲母"],correctIndex:2},
+                {id:88,text:"下列哪一種岩石滴上稀鹽酸會產生氣泡？",options:["花崗岩","安山岩","石灰岩","砂岩"],correctIndex:2},
+                {id:89,text:"下列哪一種岩石通常含有化石？",options:["火成岩","沉積岩","變質岩","花崗岩"],correctIndex:1},
+                {id:90,text:"如果想要知道礦物的條痕顏色，應該把礦物在哪裡摩擦？",options:["玻璃表面","黑色試紙","白色無上釉的瓷磚背面","不鏽鋼板"],correctIndex:2},
+                {id:91,text:"用指甲就可以刮出痕跡的礦物是下列哪一個？",options:["石英","滑石","長石","金剛石"],correctIndex:1},
+                {id:92,text:"下列哪一種礦物的硬度最大？",options:["滑石","石膏","方解石","石英"],correctIndex:3},
+                {id:93,text:"下列哪一種礦物的硬度最小？",options:["滑石","石膏","方解石","石英"],correctIndex:0},
+                {id:94,text:"石英和方解石互相刻劃，哪一個會受傷（產生刮痕）？",options:["石英","方解石","兩個都會","兩個都不會"],correctIndex:1},
+                {id:95,text:"下列關於硬度的敘述，哪一個是正確的？",options:["硬度大的礦物不怕摔","兩種礦物互相刻劃，受傷的硬度較小","硬度是指礦物的重量","硬度是指礦物的顏色深淺"],correctIndex:1},
+                {id:96,text:"製造玻璃的主要原料是哪一種礦物？",options:["長石","雲母","石英","滑石"],correctIndex:2},
+                {id:97,text:"我們常說的「愚人金」是指哪一種礦物？",options:["黃金","黃銅礦","黃鐵礦","硫磺"],correctIndex:2},
+                {id:98,text:"製作鉛筆筆芯的原料是？",options:["石墨","石英","硫磺","方解石"],correctIndex:0},
+                {id:99,text:"製作爽身粉的原料是？",options:["石膏","滑石","方解石","長石"],correctIndex:1},
+                {id:100,text:"製作豆腐時會加入哪一種礦物作為凝固劑？",options:["石膏","滑石","石英","方解石"],correctIndex:0},
+                {id:101,text:"土壤的成分不包含下列哪一項？",options:["礦物質","塑膠","腐植質","水"],correctIndex:1},
+                {id:102,text:"腐植質主要是由什麼變成的？",options:["岩石碎屑","動植物遺體分解","塑膠垃圾","保麗龍"],correctIndex:1},
+                {id:103,text:"下列哪一種岩石的縫隙最小，比較不透水？",options:["砂岩","礫岩","頁岩","石灰岩"],correctIndex:2},
+                {id:104,text:"下列哪一種岩石是由泥土堆積壓密而成的？",options:["砂岩","礫岩","頁岩","石灰岩"],correctIndex:2},
+                {id:105,text:"下列哪一種岩石是由沙子堆積膠結而成的？",options:["砂岩","礫岩","頁岩","石灰岩"],correctIndex:0},
+                {id:106,text:"下列哪一種岩石是由鵝卵石堆積膠結而成的？",options:["砂岩","礫岩","頁岩","石灰岩"],correctIndex:1},
+                {id:107,text:"原住民蓋石板屋常用的材料是哪一種岩石？",options:["板岩","石灰岩","花崗岩","玄武岩"],correctIndex:0},
+                {id:108,text:"廟宇裡的龍柱、石獅子，通常是用哪一種堅硬的岩石雕刻的？",options:["板岩","安山岩（或花崗岩）","頁岩","石膏"],correctIndex:1},
+                {id:109,text:"水泥的主要原料是哪一種岩石？",options:["板岩","花崗岩","石灰岩","安山岩"],correctIndex:2},
+                {id:110,text:"下列哪一個地方可以看到壯觀的玄武岩柱狀節理？",options:["陽明山","金門","澎湖","太魯閣"],correctIndex:2},
+                {id:111,text:"下列哪一個地方以大理岩峽谷聞名？",options:["陽明山","阿里山","澎湖","太魯閣"],correctIndex:3},
+                {id:112,text:"下列哪一個地方是火山地形，常見安山岩？",options:["陽明山","墾丁","澎湖","太魯閣"],correctIndex:0},
+                {id:113,text:"地震發生時，下列哪一個動作是錯誤的？",options:["躲在堅固桌子底下","打開大門","搭乘電梯逃生","關閉火源"],correctIndex:2},
+                {id:114,text:"下列哪一種不是地震可能造成的災害？",options:["房屋倒塌","山崩","海嘯","颱風"],correctIndex:3},
+                {id:115,text:"下列哪一種作用會使大石頭變成小石頭，最後變成土壤？",options:["風化作用","光合作用","呼吸作用","蒸發作用"],correctIndex:0},
+                {id:116,text:"流水的侵蝕作用主要發生在河流的哪一段？",options:["上游","中游","下游","出海口"],correctIndex:0},
+                {id:117,text:"流水的堆積作用主要發生在河流的哪一段？",options:["上游","中游","下游","源頭"],correctIndex:2},
+                {id:118,text:"河流上游的石頭通常具有什麼特徵？",options:["圓滑","巨大且有稜角","細小如沙","扁平"],correctIndex:1},
+                {id:119,text:"河流下游的石頭通常具有什麼特徵？",options:["巨大且有稜角","呈鵝卵石狀或沙粒","像刀子一樣利","方形"],correctIndex:1},
+                {id:120,text:"下列哪一種地形主要是由風的沉積作用形成的？",options:["沙丘","海蝕洞","豆腐岩","峽谷"],correctIndex:0},
+                {id:121,text:"女王頭的頸部越來越細，主要是受到什麼作用的影響？",options:["流水搬運","風化與侵蝕","火山爆發","地震"],correctIndex:1},
+                {id:122,text:"老梅綠石槽是哪一種地形景觀？",options:["火山地形","海蝕溝","風積地形","冰川地形"],correctIndex:1},
+                {id:123,text:"下列哪一種活動可以減少土壤流失？",options:["濫墾濫伐","種植樹木","過度放牧","開挖山坡地"],correctIndex:1},
+                {id:124,text:"礦物與岩石的關係是什麼？",options:["礦物由岩石組成","岩石由礦物組成","兩者沒有關係","岩石就是礦物"],correctIndex:1},
+                {id:125,text:"下列哪一種不是觀察礦物時紀錄的項目？",options:["顏色","硬度","光澤","價格"],correctIndex:3},
+                {id:126,text:"在實驗室中，如果想要分辨方解石和石英，最快的方法是？",options:["看顏色","滴稀鹽酸","測量重量","用水泡"],correctIndex:1},
+                {id:127,text:"下列哪一種岩石通常呈現灰黑色，且有氣孔？",options:["花崗岩","大理岩","玄武岩","石灰岩"],correctIndex:2},
+                {id:128,text:"下列哪一種岩石通常呈現花斑狀，有黑、白、肉紅等顏色的顆粒？",options:["花崗岩","玄武岩","石灰岩","砂岩"],correctIndex:0},
+                {id:129,text:"下列哪一種礦物具有金屬光澤？",options:["石英","長石","黃鐵礦","石膏"],correctIndex:2},
+                {id:130,text:"下列哪一種礦物最常呈現透明六角柱狀？",options:["水晶（石英）","方解石","雲母","滑石"],correctIndex:0},
+                {id:131,text:"我們吃的鹽巴，在礦物學上稱為什麼？",options:["石膏","石鹽","方解石","石英"],correctIndex:1},
+                {id:132,text:"哪一種岩石變質後會形成石英岩？",options:["石灰岩","頁岩","砂岩","花崗岩"],correctIndex:2},
+                {id:133,text:"關於化石的敘述，下列何者錯誤？",options:["可以了解古代生物的樣子","可以推測古代的環境","只存在於火成岩中","古代生物的足跡也可以是化石"],correctIndex:2},
+                {id:134,text:"土壤的形成需要多久時間？",options:["幾天","幾個月","幾年","數百到數千年"],correctIndex:3},
+                {id:135,text:"保護土壤的方法不包括下列哪一項？",options:["多種植被","做好水土保持","亂丟垃圾","減少汙染"],correctIndex:2},
+                {id:136,text:"下列哪一種現象不是風化作用？",options:["岩石因熱脹冷縮破裂","水結冰撐破岩石","植物根部撐破岩石","河流搬運石頭"],correctIndex:3},
+                {id:137,text:"下列哪一種地形是河流侵蝕作用造成的？",options:["峽谷","沖積扇","三角洲","沙洲"],correctIndex:0},
+                {id:138,text:"下列哪一種地形是河流堆積作用造成的？",options:["峽谷","瀑布","三角洲","壺穴"],correctIndex:2},
+                {id:139,text:"下列哪一種因素不會影響地表的樣貌？",options:["流水","風","陽光","月亮的圓缺"],correctIndex:3},
+                {id:140,text:"地震發生時，如果正在開車，應該怎麼辦？",options:["加速通過","減速靠邊停車","緊急煞車","按喇叭"],correctIndex:1},
+                {id:141,text:"下列哪一項是地震發生前的徵兆（但不一定準確）？",options:["井水水位異常變化","天空出現彩虹","螞蟻搬家","以上皆非"],correctIndex:0},
+                {id:142,text:"準備緊急避難包時，下列哪一項不是必須的？",options:["飲用水","乾糧","手電筒","電動遊樂器"],correctIndex:3},
+                {id:143,text:"緊急避難包應該放在哪裡？",options:["隨手可拿到的地方","保險箱裡","地下室深處","屋頂上"],correctIndex:0},
+                {id:144,text:"下列哪一種岩石的顆粒最細緻？",options:["礫岩","砂岩","頁岩","花崗岩"],correctIndex:2},
+                {id:145,text:"下列哪一種岩石摸起來像砂紙一樣粗粗的？",options:["砂岩","頁岩","大理岩","滑石"],correctIndex:0},
+                {id:146,text:"下列哪一種礦物可以用來製作鏡片或光學儀器？",options:["石英","雲母","長石","方解石"],correctIndex:0},
+                {id:147,text:"下列哪一種礦物可以用來當作絕緣材料？",options:["雲母","黃鐵礦","石墨","磁鐵礦"],correctIndex:0},
+                {id:148,text:"下列哪一種礦物具有導電性？",options:["石英","石墨","雲母","硫磺"],correctIndex:1},
+                {id:149,text:"下列哪一種岩石屬於沉積岩？",options:["礫岩","安山岩","玄武岩","花崗岩"],correctIndex:0},
+                {id:150,text:"下列哪一種岩石屬於火成岩？",options:["砂岩","頁岩","花崗岩","石灰岩"],correctIndex:2},
+                {id:151,text:"下列哪一種岩石屬於變質岩？",options:["片麻岩","花崗岩","玄武岩","砂岩"],correctIndex:0},
+                {id:152,text:"太魯閣峽谷的形成原因主要為何？",options:["冰川侵蝕","河流侵蝕與地殼抬升","風力侵蝕","火山爆發"],correctIndex:1},
+                {id:153,text:"澎湖的桶盤嶼以什麼地形景觀聞名？",options:["柱狀玄武岩","大理石峽谷","石灰岩洞","海蝕門"],correctIndex:0},
+                {id:154,text:"野柳地質公園的燭台石主要是如何形成的？",options:["海水侵蝕與風化作用","人工雕刻","火山熔岩冷卻","隕石撞擊"],correctIndex:0},
+                {id:155,text:"下列哪一種災害通常伴隨著豪雨發生在山區？",options:["土石流","海嘯","乾旱","寒害"],correctIndex:0},
+                {id:156,text:"下列哪一種措施可以減少土石流的危害？",options:["砍伐森林","做好水土保持","在河道堆積垃圾","隨意開墾山坡地"],correctIndex:1},
+                {id:157,text:"地震發生後，為了防止餘震造成傷害，應該怎麼做？",options:["立刻搭電梯離開","檢查瓦斯管線是否漏氣","在窗戶旁觀看","立刻跑回屋內拿財物"],correctIndex:1},
+                {id:158,text:"下列關於岩石循環的敘述，何者正確？",options:["岩石形成後永遠不變","岩石會隨著時間和環境改變","只有火成岩會變成沉積岩","變質岩不會變成岩漿"],correctIndex:1},
+                {id:159,text:"下列哪一種礦物的顏色通常是紅褐色的？",options:["赤鐵礦","磁鐵礦","黃鐵礦","方解石"],correctIndex:0},
+                {id:160,text:"如果岩石中含有鐵質，氧化後通常會呈現什麼顏色？",options:["紅色或紅褐色","藍色","綠色","白色"],correctIndex:0},
+                {id:161,text:"下列哪一種不是尋找礦物的好地點？",options:["河床","採石場","建築工地","鋪柏油的馬路中間"],correctIndex:3},
+                {id:162,text:"在觀察礦物硬度時，如果A礦物可以在B礦物上刻出痕跡，代表什麼？",options:["A的硬度大於B","B的硬度大於A","兩者硬度相同","無法比較"],correctIndex:0},
+                {id:163,text:"摩氏硬度表中，硬度為7的標準礦物是？",options:["長石","石英","黃玉","剛玉"],correctIndex:1},
+                {id:164,text:"摩氏硬度表中，硬度為10的標準礦物是？",options:["石英","剛玉","金剛石（鑽石）","螢石"],correctIndex:2},
+                {id:165,text:"下列哪一種岩石的孔隙最大，透水性最好？",options:["礫岩","砂岩","頁岩","泥岩"],correctIndex:0},
+                {id:166,text:"下列哪一種岩石常被用來鋪設鐵路路基？",options:["變質岩碎石","泥土","沙子","大理石板"],correctIndex:0},
+                {id:167,text:"下列哪一種岩石經過琢磨後，適合做成硯台？",options:["砂岩","螺溪石（板岩/頁岩）","花崗岩","大理岩"],correctIndex:1},
+                {id:168,text:"下列哪一種不是沉積岩的特徵？",options:["有氣孔","有化石","有層狀構造","由碎屑膠結而成"],correctIndex:0},
+                {id:169,text:"下列哪一種不是火成岩的特徵？",options:["由岩漿冷卻形成","可能有氣孔","可能有結晶顆粒","通常含有化石"],correctIndex:3},
+                {id:170,text:"下列哪一種地形是由海浪堆積作用形成的？",options:["海蝕崖","沙灘","海蝕平台","海蝕洞"],correctIndex:1},
+                {id:171,text:"鐘乳石是在哪一種岩石地區常見的景觀？",options:["花崗岩","石灰岩","安山岩","玄武岩"],correctIndex:1},
+                {id:172,text:"石灰岩洞中的石筍主要是由什麼成分堆積而成的？",options:["二氧化矽","碳酸鈣","氧化鐵","氯化鈉"],correctIndex:1},
+                {id:173,text:"下列哪一種不是地表改變的力量？",options:["流水","風","冰川","磁力"],correctIndex:3},
+                {id:174,text:"下列哪一種情況容易造成土壤流失？",options:["坡度平緩","植被茂密","坡度陡峭且無植被","降雨量少"],correctIndex:2},
+                {id:175,text:"為了保護河堤，常在岸邊放置什麼？",options:["消波塊（肉粽角）","垃圾","木頭","沙子"],correctIndex:0},
+                {id:176,text:"下列哪一種是人為因素造成的地表改變？",options:["地震","火山爆發","興建水庫","颱風"],correctIndex:2},
+                {id:177,text:"地震的強度我們通常用什麼來表示？",options:["震度","溫度","濕度","風速"],correctIndex:0},
+                {id:178,text:"地震釋放能量的大小我們稱為什麼？",options:["震度","規模","震源","震央"],correctIndex:1},
+                {id:179,text:"中央氣象署發布的地震報告中，震度是用什麼數字表示？",options:["阿拉伯數字（1, 2, 3...）","國字（一、二、三...）","羅馬數字（I, II, III...）","英文（A, B, C...）"],correctIndex:0},
+                {id:180,text:"地震規模通常用什麼數字表示？",options:["整數或小數（如 6.5）","只有整數","分數","百分比"],correctIndex:0},
+                {id:181,text:"下列哪一個地方是河流的源頭？",options:["高山","平原","海洋","湖泊"],correctIndex:0},
+                {id:182,text:"河流的哪一個部分侵蝕作用最強？",options:["上游","中游","下游","出海口"],correctIndex:0},
+                {id:183,text:"河流的哪一個部分堆積作用最明顯？",options:["上游","中游","下游","源頭"],correctIndex:2},
+                {id:184,text:"當河流流速變慢時，搬運能力會如何變化？",options:["變強","變弱","不變","忽強忽弱"],correctIndex:1},
+                {id:185,text:"下列哪一種地形位於河流出海口？",options:["三角洲","沖積扇","峽谷","瀑布"],correctIndex:0},
+                {id:186,text:"什麼是「震央」？",options:["地震發生的地下位置","震源正上方的地表位置","地震波最強的地方","地震造成災害最大的地方"],correctIndex:1},
+                {id:187,text:"什麼是「震源」？",options:["地震發生的地下位置","震源正上方的地表位置","地震測站的位置","氣象局的位置"],correctIndex:0},
+                {id:188,text:"下列哪一種岩石的紋理像五花肉一樣，常作為觀賞石？",options:["肉形石（碧石/瑪瑙）","大理岩","花崗岩","板岩"],correctIndex:0},
+                {id:189,text:"下列哪一種礦物是電腦晶片（矽晶圓）的重要原料？",options:["石英","雲母","方解石","石膏"],correctIndex:0},
+                {id:190,text:"下列哪一種礦物可以用來做成飾品（如紫水晶）？",options:["石英","石膏","滑石","雲母"],correctIndex:0},
+                {id:191,text:"下列哪一種岩石表面常有杏仁狀的氣孔？",options:["安山岩","玄武岩","花崗岩","大理岩"],correctIndex:1},
+                {id:192,text:"花崗岩主要由哪三種礦物組成？",options:["石英、雲母、長石","石英、方解石、滑石","雲母、長石、石膏","石英、石墨、硫磺"],correctIndex:0},
+                {id:193,text:"下列哪一種不是辨別礦物的方法？",options:["看顏色","測硬度","看條痕","用火燒"],correctIndex:3},
+                {id:194,text:"下列哪一種岩石可以用來做成水泥？",options:["石灰岩","安山岩","玄武岩","花崗岩"],correctIndex:0},
+                {id:195,text:"下列哪一種岩石可以用來蓋房子或鋪地板？",options:["大理岩","石膏","滑石","硫磺"],correctIndex:0},
+                {id:196,text:"下列哪一種岩石是沉積岩？",options:["石灰岩","花崗岩","安山岩","玄武岩"],correctIndex:0},
+                {id:197,text:"下列哪一種岩石是變質岩？",options:["大理岩","砂岩","頁岩","花崗岩"],correctIndex:0},
+                {id:198,text:"下列哪一種岩石是火成岩？",options:["安山岩","石灰岩","砂岩","板岩"],correctIndex:0},
+                {id:199,text:"下列哪一種礦物的條痕是黑色的？",options:["黃鐵礦","石英","方解石","滑石"],correctIndex:0},
+                {id:200,text:"下列哪一種礦物的條痕是白色的？",options:["方解石","赤鐵礦","黃鐵礦","石墨"],correctIndex:0},
+                {id:201,text:"台灣最常見的天然災害是？",options:["颱風與地震","龍捲風","火山爆發","暴風雪"],correctIndex:0},
+                {id:202,text:"下列哪一項不是土石流發生的徵兆？",options:["溪水變混濁","聽到山上有巨響","溪水流量異常變小","天空出現彩虹"],correctIndex:3},
+                {id:203,text:"下列哪一種做法可以減少風化作用對古蹟的破壞？",options:["塗上保護漆","經常用水清洗","放在戶外曝曬","任其自然"],correctIndex:0},
+                {id:204,text:"海蝕拱門是受什麼作用形成的？",options:["海浪侵蝕","河流堆積","風力堆積","冰川移動"],correctIndex:0},
+                {id:205,text:"沙洲是受什麼作用形成的？",options:["海浪或河流堆積","海浪侵蝕","風力侵蝕","地震"],correctIndex:0},
+                {id:206,text:"風磨石（稜石）主要分布在什麼環境？",options:["沙漠或乾燥地區","熱帶雨林","海底","高山頂"],correctIndex:0},
+                {id:207,text:"冰川U型谷是受什麼作用形成的？",options:["冰川侵蝕","河流侵蝕","風力侵蝕","海浪侵蝕"],correctIndex:0},
+                {id:208,text:"河流V型谷是受什麼作用形成的？",options:["河流向下侵蝕","冰川侵蝕","風力侵蝕","海浪侵蝕"],correctIndex:0},
+                {id:209,text:"下列哪一種不是水土保持的方法？",options:["種植檳榔樹","種植深根植物","做梯田","興建攔沙壩"],correctIndex:0},
+                {id:210,text:"檳榔樹的根系較淺，種植過多容易造成？",options:["水土流失","土壤肥沃","空氣清新","生態豐富"],correctIndex:0},
+                {id:211,text:"下列哪一種岩石的顏色較深，密度較大？",options:["玄武岩","花崗岩","流紋岩","石英岩"],correctIndex:0},
+                {id:212,text:"下列哪一種岩石的顏色較淺，密度較小？",options:["花崗岩","玄武岩","輝長岩","橄欖岩"],correctIndex:0},
+                {id:213,text:"下列哪一種礦物有鹹味？",options:["石鹽","方解石","石膏","石英"],correctIndex:0},
+                {id:214,text:"下列哪一種礦物摸起來有滑膩感？",options:["滑石","石英","黃鐵礦","長石"],correctIndex:0},
+                {id:215,text:"下列哪一種岩石敲擊聲音清脆，適合做成石琴？",options:["板岩或響石","頁岩","泥岩","砂岩"],correctIndex:0},
+                {id:216,text:"下列哪一種岩石的結構鬆散，容易風化？",options:["頁岩","花崗岩","玄武岩","石英岩"],correctIndex:0},
+                {id:217,text:"下列哪一種地形不是河流作用形成的？",options:["沙丘","壺穴","曲流","牛軛湖"],correctIndex:0},
+                {id:218,text:"下列哪一種地形不是海浪作用形成的？",options:["蕈狀岩","海蝕柱","海灘","海蝕崖"],correctIndex:0},
+                {id:219,text:"下列哪一種地形不是風力作用形成的？",options:["海蝕洞","沙丘","風磨石","風棱石"],correctIndex:0},
+                {id:220,text:"下列哪一種災害與水有關？",options:["水災","旱災","土石流","以上皆是"],correctIndex:3},
+                {id:221,text:"台灣的地震主要由什麼原因引起？",options:["板塊擠壓","火山爆發","核子試爆","隕石撞擊"],correctIndex:0},
+                {id:222,text:"台灣位於哪兩個板塊的交界處？",options:["歐亞板塊與菲律賓海板塊","歐亞板塊與太平洋板塊","太平洋板塊與印澳板塊","北美板塊與南美板塊"],correctIndex:0},
+                {id:223,text:"下列哪一個斷層活動造成了921大地震？",options:["車籠埔斷層","梅山斷層","瑞穗斷層","新城斷層"],correctIndex:0},
+                {id:224,text:"地震發生時，如果聞到瓦斯味，應該？",options:["關閉瓦斯，打開門窗通風","打開電風扇","點火檢查","打電話求救"],correctIndex:0},
+                {id:225,text:"颱風來襲時，下列哪一個行為是正確的？",options:["待在家中","去海邊觀浪","去登山","去河邊釣魚"],correctIndex:0},
+                {id:226,text:"颱風眼經過的地區，天氣通常會？",options:["短暫風平浪靜","風雨最大","下冰雹","下大雪"],correctIndex:0},
+                {id:227,text:"台灣的颱風季節主要在什麼時候？",options:["夏、秋季","春季","冬季","全年"],correctIndex:0},
+                {id:228,text:"土石流發生的條件不包括？",options:["平坦的地形","豐富的鬆散土石","大量的水（豪雨）","陡峭的坡度"],correctIndex:0},
+                {id:229,text:"下列哪一種岩石看起來像千層派？",options:["頁岩（或砂頁岩互層）","花崗岩","玄武岩","大理岩"],correctIndex:0},
+                {id:230,text:"下列哪一種岩石看起來像混擬土？",options:["礫岩","頁岩","砂岩","石灰岩"],correctIndex:0},
+                {id:231,text:"下列哪一種岩石的顆粒像砂糖一樣？",options:["砂岩","頁岩","泥岩","石灰岩"],correctIndex:0},
+                {id:232,text:"雲母、長石、石英這三種礦物，硬度由大到小排列為何？",options:["石英>長石>雲母","長石>石英>雲母","雲母>長石>石英","石英>雲母>長石"],correctIndex:0},
+                {id:233,text:"下列哪一種不是觀察岩石的方法？",options:["嚐味道","看顏色","摸質感","測硬度"],correctIndex:0},
+                {id:234,text:"野外考察時，為了安全，應該？",options:["穿著長袖長褲和防滑鞋","穿拖鞋","單獨行動","隨意攀爬岩壁"],correctIndex:0},
+                {id:235,text:"在海邊看到蜂窩岩，主要是什麼作用形成的？",options:["差異侵蝕與風化","河流堆積","火山爆發","冰川侵蝕"],correctIndex:0},
+                {id:236,text:"在河床上看到的大石頭，通常是從哪裡來的？",options:["上游崩落並被搬運","天上掉下來","海裡沖上來","地底冒出來"],correctIndex:0},
+                {id:237,text:"為什麼有些海灘是黑色的沙子？",options:["因為岩石成分不同（如玄武岩、頁岩）","因為被石油汙染","因為沒有陽光","因為海藻腐爛"],correctIndex:0},
+                {id:238,text:"金瓜石以前以出產什麼金屬礦物聞名？",options:["金礦與銅礦","鐵礦","鋁礦","銀礦"],correctIndex:0},
+                {id:239,text:"台灣西部河流出海口常見的地形是？",options:["沙洲與溼地","懸崖峭壁","珊瑚礁","峽谷"],correctIndex:0},
+                {id:240,text:"墾丁國家公園常見的岩石是？",options:["石灰岩（珊瑚礁石灰岩）","花崗岩","安山岩","片麻岩"],correctIndex:0},
+                {id:241,text:"陽明山小油坑的噴氣孔常可見到黃色的結晶，那是？",options:["硫磺","黃金","黃鐵礦","方解石"],correctIndex:0},
+                {id:242,text:"下列哪一種不是愛護地球的行為？",options:["隨地丟棄廢棄物","做好資源回收","節約用水","多搭乘大眾運輸"],correctIndex:0},
+                {id:243,text:"岩石風化後變成土壤，這過程需要？",options:["很長的時間","很短的時間","瞬間完成","不需要時間"],correctIndex:0},
+                {id:244,text:"下列哪一種生物對岩石風化有貢獻？",options:["地衣與苔蘚","鳥類","魚類","昆蟲"],correctIndex:0},
+                {id:245,text:"下列哪一種是化學風化的現象？",options:["岩石生鏽（氧化）","岩石熱脹冷縮","水結冰撐開岩石","植物根部撐開岩石"],correctIndex:0},
+                {id:246,text:"下列哪一種是物理風化的現象？",options:["岩石熱脹冷縮崩解","岩石溶解","岩石氧化","酸雨侵蝕"],correctIndex:0},
+                {id:247,text:"石灰岩洞的形成主要與什麼作用有關？",options:["地下水的溶解（化學風化）","風力侵蝕","海浪拍打","河流搬運"],correctIndex:0},
+                {id:248,text:"下列哪一個不是風化作用的產物？",options:["岩石碎屑","土壤","溶解在水中的礦物質","塑膠微粒"],correctIndex:3},
+                {id:249,text:"下列哪一種岩石最容易被酸雨溶解？",options:["石灰岩","花崗岩","石英岩","板岩"],correctIndex:0},
+                {id:250,text:"下列哪一種地形是差異侵蝕造成的？",options:["女王頭","沙灘","沖積扇","三角洲"],correctIndex:0},
+                {id:251,text:"下列哪一種岩石的抗侵蝕能力通常較強（較堅硬）？",options:["砂岩","頁岩","泥岩","石灰岩"],correctIndex:0},
+                {id:252,text:"瀑布通常發生在什麼地方？",options:["硬岩與軟岩交界處","平原","出海口","湖泊中心"],correctIndex:0},
+                {id:253,text:"河流的曲流凸岸（堆積岸）水流速度較？",options:["慢","快","一樣","不一定"],correctIndex:0},
+                {id:254,text:"河流的曲流凹岸（侵蝕岸）水流速度較？",options:["快","慢","一樣","不一定"],correctIndex:0},
+                {id:255,text:"如果要在河邊蓋房子，應該選在曲流的哪一側比較安全？",options:["凸岸（堆積岸）","凹岸（侵蝕岸）","河中心","都可以"],correctIndex:0},
+                {id:256,text:"下列哪一種活動會加速海岸線退縮？",options:["在河流上游興建水庫攔沙","種植防風林","設置消波塊","保護珊瑚礁"],correctIndex:0},
+                {id:257,text:"海嘯通常是由什麼引起的？",options:["海底地震或火山爆發","強風","潮汐","大雨"],correctIndex:0},
+                {id:258,text:"下列哪一種岩石屬於變質岩？",options:["蛇紋岩","花崗岩","安山岩","玄武岩"],correctIndex:0},
+                {id:259,text:"玫瑰石是哪一種岩石？",options:["變質岩（薔薇輝石等）","沉積岩","火成岩","化石"],correctIndex:0},
+                {id:260,text:"台灣東部的海岸山脈主要由什麼岩石組成？",options:["火山岩與沉積岩","變質岩","花崗岩","大理岩"],correctIndex:0},
+                {id:261,text:"台灣中央山脈主要由什麼岩石組成？",options:["變質岩","沉積岩","火成岩","珊瑚礁"],correctIndex:0},
+                {id:262,text:"下列哪一種礦物是紅寶石的主要成分？",options:["剛玉","石英","長石","方解石"],correctIndex:0},
+                {id:263,text:"下列哪一種礦物是祖母綠的主要成分？",options:["綠柱石","石英","長石","方解石"],correctIndex:0},
+                {id:264,text:"石棉因為具有什麼特性，以前常被用來做防火材（現已禁用）？",options:["耐熱絕緣","導電","易燃","有香味"],correctIndex:0},
+                {id:265,text:"下列哪一種岩石的顏色通常最深？",options:["玄武岩","花崗岩","安山岩","流紋岩"],correctIndex:0},
+                {id:266,text:"下列哪一種岩石的二氧化矽含量最高？",options:["流紋岩","安山岩","玄武岩","輝長岩"],correctIndex:0},
+                {id:267,text:"下列哪一種岩石的二氧化矽含量最低？",options:["玄武岩","安山岩","流紋岩","花崗岩"],correctIndex:0},
+                {id:268,text:"黑曜岩是如何形成的？",options:["岩漿極速冷卻","岩漿緩慢冷卻","沉積物堆積","高溫高壓變質"],correctIndex:0},
+                {id:269,text:"花崗岩是如何形成的？",options:["岩漿在地下緩慢冷卻","岩漿噴出地表快速冷卻","沉積物堆積","隕石撞擊"],correctIndex:0},
+                {id:270,text:"下列哪一種岩石具有片理構造？",options:["片岩","花崗岩","砂岩","玄武岩"],correctIndex:0},
+                {id:271,text:"下列哪一種岩石具有葉理構造？",options:["片麻岩","安山岩","石灰岩","礫岩"],correctIndex:0},
+                {id:272,text:"下列哪一種不是台灣常見的寶石或玉石？",options:["鑽石","藍寶石（藍玉髓）","台灣玉（閃玉）","玫瑰石"],correctIndex:0},
+                {id:273,text:"台灣玉（豐田玉）屬於哪一種礦物？",options:["閃玉","硬玉","石英","方解石"],correctIndex:0},
+                {id:274,text:"下列哪一種因素會影響岩石風化的速度？",options:["氣候、岩石性質、生物活動","只有氣候","只有岩石性質","只有時間"],correctIndex:0},
+                {id:275,text:"在高溫多雨的地區，哪一種風化作用比較旺盛？",options:["化學風化","物理風化","生物風化","沒有風化"],correctIndex:0},
+                {id:276,text:"在寒冷乾燥的地區，哪一種風化作用比較旺盛？",options:["物理風化","化學風化","生物風化","沒有風化"],correctIndex:0},
+                {id:277,text:"下列哪一種岩石最容易被氧化而變紅？",options:["含鐵的砂岩","純石英砂岩","大理岩","石灰岩"],correctIndex:0},
+                {id:278,text:"土壤剖面中，最表層通常是？",options:["腐植質層（O層）","岩石層","洗出層","澱積層"],correctIndex:0},
+                {id:279,text:"土壤剖面中，最底層通常是？",options:["母岩（R層）","表土","心土","腐植質"],correctIndex:0},
+                {id:280,text:"下列哪一種土壤最適合大多數植物生長？",options:["壤土","純沙","純黏土","石礫地"],correctIndex:0},
+                {id:281,text:"沙質土壤的特性是？",options:["排水性好但保水性差","排水性差","保水性極佳","非常黏"],correctIndex:0},
+                {id:282,text:"黏質土壤的特性是？",options:["保水性好但通氣性差","排水性極佳","顆粒很大","不黏"],correctIndex:0},
+                {id:283,text:"蚯蚓在土壤中活動有什麼好處？",options:["增加土壤通氣性和肥力","吃掉植物根部","讓土壤變硬","沒有好處"],correctIndex:0},
+                {id:284,text:"下列哪一種地形是由冰川搬運堆積形成的？",options:["冰磧石","V型谷","海蝕柱","沙丘"],correctIndex:0},
+                {id:285,text:"月球表面布滿坑洞，主要是什麼原因？",options:["隕石撞擊","流水侵蝕","風力侵蝕","冰川侵蝕"],correctIndex:0},
+                {id:286,text:"地球表面有大氣層保護，可以減少？",options:["隕石撞擊和紫外線","雨水","陽光","氧氣"],correctIndex:0},
+                {id:287,text:"下列哪一種不是地質公園設立的目的？",options:["開採礦產賺錢","保護特殊地質景觀","提供環境教育","促進觀光"],correctIndex:0},
+                {id:288,text:"去地質公園參觀時，我們應該？",options:["拍照留念不帶走岩石","刻字留念","帶走化石","亂丟垃圾"],correctIndex:0},
+                {id:289,text:"下列哪一個是台灣的第一座地質公園？",options:["野柳地質公園","陽明山","太魯閣","墾丁"],correctIndex:0},
+                {id:290,text:"澎湖海洋地質公園的主要特色是？",options:["玄武岩地景","大理岩峽谷","高山","溫泉"],correctIndex:0},
+                {id:291,text:"利吉惡地（月世界）的地形特色是？",options:["寸草不生的泥岩地形","茂密的森林","平坦的草原","美麗的花海"],correctIndex:0},
+                {id:292,text:"月世界地形是因為哪一種岩石抗侵蝕力差而形成的？",options:["泥岩","花崗岩","玄武岩","大理岩"],correctIndex:0},
+                {id:293,text:"下列哪一種災害屬於人為災害？",options:["火災（人為縱火）","地震","颱風","寒流"],correctIndex:0},
+                {id:294,text:"面對天然災害，我們應該抱持什麼態度？",options:["防災重於救災","聽天由命","漠不關心","驚慌失措"],correctIndex:0},
+                {id:295,text:"土石流發生時，應該往哪個方向逃生？",options:["往溪流兩側高處跑","往溪流下游跑","往溪流上游跑","待在原地"],correctIndex:0},
+                {id:296,text:"海嘯發生前，海水可能會？",options:["異常退去","變熱","變色","結冰"],correctIndex:0},
+                {id:297,text:"下列哪一種岩石最適合用來當作烤肉架的石板？",options:["板岩（受熱均勻不易爆裂）","含水份多的砂岩","有氣孔的玄武岩","易碎的頁岩"],correctIndex:0},
+                {id:298,text:"水晶的主要成分是？",options:["二氧化矽","碳酸鈣","氧化鋁","氯化鈉"],correctIndex:0},
+                {id:299,text:"地殼中含量最多的金屬元素是？",options:["鋁","鐵","金","銅"],correctIndex:0},
+                {id:300,text:"地殼中含量最多的元素是？",options:["氧","矽","鋁","鐵"],correctIndex:0}
+            ];
+
+            // 21 種全新稱號定義 (變動的大地主題)
+            const rankDefinitions = [
+                { title: "🌑 靜止的塵埃", color: "text-slate-400", msg: "一切的開始，你還是一粒微小的塵埃..." },
+                { title: "🏜️ 沉積的泥沙", color: "text-stone-500", msg: "隨著水流靜靜沉澱，等待時機。" },
+                { title: "🧱 風化的岩石", color: "text-stone-600", msg: "歷經風霜，你開始展現堅韌的本質。" },
+                { title: "🌊 滾動的鵝卵石", color: "text-blue-400", msg: "在激流中翻滾，磨練出圓融的智慧。" },
+                { title: "💧 流動的溪水", color: "text-cyan-500", msg: "雖然柔弱，卻擁有穿石的毅力。" },
+                { title: "🌿 堆積的三角洲", color: "text-green-600", msg: "孕育生命，成為肥沃的知識土壤。" },
+                { title: "🪨 堅硬的沉積岩", color: "text-yellow-600", msg: "層層疊疊的知識，構築了你的基礎。" },
+                { title: "🔥 受壓的變質岩", color: "text-orange-700", msg: "在高壓下蛻變，展現出美麗的紋理。" },
+                { title: "🌋 熾熱的岩漿", color: "text-red-500", msg: "充滿能量，準備噴發你的熱情！" },
+                { title: "💥 噴發的火山", color: "text-red-600", msg: "驚天動地！你的知識如火山般爆發！" },
+                { title: "📉 斷裂的地層", color: "text-slate-500", msg: "打破舊有觀念，創造新的地質結構。" },
+                { title: "⚡ 錯動的斷層", color: "text-yellow-500", msg: "釋放巨大的能量，改變地表的樣貌。" },
+                { title: "🏔️ 隆起的山脈", color: "text-emerald-700", msg: "高聳入雲，成為他人仰望的高峰。" },
+                { title: "🌍 漂移的板塊", color: "text-blue-600", msg: "你的影響力如同板塊運動，緩慢但無法阻擋。" },
+                { title: "🌊 狂暴的海嘯", color: "text-indigo-600", msg: "知識的浪潮襲來，無人能擋！" },
+                { title: "🔨 地殼的雕塑家", color: "text-purple-500", msg: "你隨手一揮，便能刻畫出壯麗的峽谷。" },
+                { title: "🎓 地質學大師", color: "text-pink-500", msg: "上知天文下知地理，你是地質界的權威。" },
+                { title: "🛡️ 地球的守護者", color: "text-teal-500", msg: "你深知大地的奧秘，並守護著這顆星球。" },
+                { title: "🌌 撼動山河的巨人", color: "text-orange-500", msg: "你的每一步，都在改寫地球的歷史！" },
+                { title: "🪐 變動大地的主宰", color: "text-indigo-500", msg: "太神了！你是這顆星球真正的主人！" },
+                { title: "👑 宇宙級地質天神", color: "text-yellow-400", msg: "超越地球的存在，你的知識已達宇宙級別！" },
+            ];
+
+            // 格式化日期函數 (YYYY-MM-DD HH:mm:ss)
+            const formatDate = (date) => {
+                const pad = (n) => n.toString().padStart(2, '0');
+                const y = date.getFullYear();
+                const m = pad(date.getMonth() + 1);
+                const d = pad(date.getDate());
+                const h = pad(date.getHours());
+                const mi = pad(date.getMinutes());
+                const s = pad(date.getSeconds());
+                return `${y}-${m}-${d} ${h}:${mi}:${s}`;
+            };
+
+            const shuffleArray = (array) => {
+                const newArray = [...array];
+                for (let i = newArray.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+                }
+                return newArray;
+            };
+
+            // 開始新遊戲
+            const startGame = () => {
+                const shuffledQuestions = shuffleArray(fullQuestionPool);
+                const selectedQuestions = shuffledQuestions.slice(0, 20);
+                setQuizQuestions(selectedQuestions);
+                setScore(0);
+                setCurrentQuestionIndex(0);
+                setGameState('quiz');
+                setShowFeedback(false);
+                setSelectedOption(null);
+            };
+
+            // 處理選項點擊
+            const handleOptionClick = (index) => {
+                if (showFeedback) return;
+                setSelectedOption(index);
+                setShowFeedback(true);
+                const currentQ = quizQuestions[currentQuestionIndex];
+                const isCorrect = index === currentQ.correctIndex;
+                if (isCorrect) {
+                    setScore(prev => prev + 5);
+                    setFeedback({ isCorrect: true, text: "答對了！ (+5分)" });
+                } else {
+                    setFeedback({ isCorrect: false, text: "答錯囉！" });
+                }
+            };
+
+            // 下一題
+            const nextQuestion = () => {
+                if (currentQuestionIndex < quizQuestions.length - 1) {
+                    setCurrentQuestionIndex(prev => prev + 1);
+                    setShowFeedback(false);
+                    setSelectedOption(null);
+                } else {
+                    finishGame();
+                }
+            };
+
+            // 取得稱號
+            const getRank = (currentScore) => {
+                const safeScore = Math.max(0, Math.min(100, currentScore));
+                const index = Math.floor(safeScore / 5);
+                return rankDefinitions[index] || rankDefinitions[rankDefinitions.length - 1];
+            };
+
+            // 結束遊戲並儲存紀錄
+            const finishGame = () => {
+                const rank = getRank(score);
+                const now = new Date();
+                
+                const newRecord = {
+                    date: formatDate(now),
+                    score: score,
+                    title: rank.title,
+                    color: rank.color,
+                    timestamp: now.getTime()
+                };
+
+                const updatedHistory = [newRecord, ...history];
+                setHistory(updatedHistory);
+                localStorage.setItem('quizHistory', JSON.stringify(updatedHistory));
+
+                setGameState('result');
+            };
+
+            // 清除紀錄
+            const clearHistory = () => {
+                const password = prompt("請輸入密碼以刪除紀錄：");
+                if (password === "7772041") {
+                    if (confirm("確定要刪除所有紀錄嗎？此動作無法復原。")) {
+                        setHistory([]);
+                        localStorage.removeItem('quizHistory');
+                        alert("紀錄已刪除");
+                    }
+                } else if (password !== null) {
+                    alert("密碼錯誤！");
+                }
+            };
+
+            return (
+                <div className="min-h-screen bg-slate-100 font-sans text-slate-800 flex flex-col items-center justify-center p-4">
+                <div className="w-full max-w-2xl bg-white rounded-2xl shadow-xl overflow-hidden border-4 border-slate-200">
+                    
+                    {/* Header */}
+                    <div className="bg-slate-700 p-6 text-center relative">
+                    <h1 className="text-2xl md:text-3xl font-bold text-white flex items-center justify-center gap-2">
+                        <Icons.Globe className="text-blue-400"/> 變動的大地挑戰賽
+                    </h1>
+                    <div className="absolute top-6 right-6 text-slate-300 text-sm font-mono hidden md:block">
+                        {gameState === 'history' ? '歷史紀錄' : (gameState === 'quiz' ? '隨機題庫模式' : '300題庫版')}
+                    </div>
+                    </div>
+
+                    <div className="p-6 md:p-8 min-h-[450px] flex flex-col justify-center">
+                    
+                    {/* --- 首頁 (Start) --- */}
+                    {gameState === 'start' && (
+                        <div className="text-center space-y-8 animate-fade-in">
+                        <div className="flex justify-center text-slate-600 mb-4 relative">
+                            <Icons.Activity size={80} className="text-red-500" />
+                            <Icons.Mountain size={40} className="absolute -bottom-2 -right-2 text-slate-400" />
+                        </div>
+                        
+                        <div className="space-y-4">
+                            <h2 className="text-2xl font-bold text-slate-800">準備好接受地質挑戰了嗎？</h2>
+                            <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-100 text-left space-y-2">
+                            <div className="flex items-start gap-3">
+                                <Icons.AlertCircle size={20} className="text-emerald-600 mt-1 flex-shrink-0" />
+                                <p className="text-slate-700">本測驗題庫包含 <span className="font-bold text-emerald-700">{fullQuestionPool.length}</span> 道關於岩石、礦物、板塊與地質作用的題目。</p>
+                            </div>
+                            <div className="flex items-start gap-3">
+                                <Icons.AlertCircle size={20} className="text-emerald-600 mt-1 flex-shrink-0" />
+                                <p className="text-slate-700">每次隨機抽選 <span className="font-bold text-emerald-700">20</span> 題，每題 <span className="font-bold text-emerald-700">5</span> 分，挑戰成為大地的王者！</p>
+                            </div>
+                            </div>
+                        </div>
+
+                        <div className="flex flex-col gap-3">
+                            <button 
+                                onClick={startGame}
+                                className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xl font-bold transition-all transform hover:scale-105 shadow-lg flex items-center justify-center gap-2 group"
+                            >
+                                開始挑戰 <Icons.ChevronRight className="group-hover:translate-x-1 transition-transform"/>
+                            </button>
+                            <button 
+                                onClick={() => setGameState('history')}
+                                className="w-full py-3 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl text-lg font-bold transition-colors flex items-center justify-center gap-2"
+                            >
+                                <Icons.History size={20}/> 查看我的成就紀錄
+                            </button>
+                        </div>
+                        </div>
+                    )}
+
+                    {/* --- 測驗中 (Quiz) --- */}
+                    {gameState === 'quiz' && quizQuestions.length > 0 && (
+                        <div className="space-y-6 animate-fade-in">
+                        <div className="space-y-2">
+                            <div className="flex justify-between items-center text-sm font-bold text-slate-500">
+                            <span>Question {currentQuestionIndex + 1} / {quizQuestions.length}</span>
+                            <span className="bg-slate-100 px-3 py-1 rounded-full text-slate-600">得分: {score}</span>
+                            </div>
+                            <div className="w-full bg-slate-200 h-3 rounded-full overflow-hidden">
+                            <div 
+                                className="bg-emerald-500 h-full transition-all duration-500 ease-out"
+                                style={{ width: `${((currentQuestionIndex + 1) / quizQuestions.length) * 100}%` }}
+                            ></div>
+                            </div>
+                        </div>
+
+                        <div className="min-h-[80px]">
+                            <h2 className="text-xl md:text-2xl font-bold text-slate-800 leading-relaxed">
+                            {quizQuestions[currentQuestionIndex].text}
+                            </h2>
+                        </div>
+
+                        <div className="grid gap-3">
+                            {quizQuestions[currentQuestionIndex].options.map((option, idx) => {
+                            let btnClass = "w-full p-4 text-left text-lg rounded-xl border-2 transition-all font-medium relative overflow-hidden ";
+                            
+                            if (!showFeedback) {
+                                btnClass += "bg-white border-slate-200 hover:border-emerald-500 hover:bg-emerald-50 text-slate-700 hover:shadow-md";
+                            } else {
+                                if (idx === quizQuestions[currentQuestionIndex].correctIndex) {
+                                btnClass += "bg-emerald-100 border-emerald-500 text-emerald-900";
+                                } else if (idx === selectedOption) {
+                                btnClass += "bg-red-100 border-red-500 text-red-900";
+                                } else {
+                                btnClass += "bg-slate-50 border-slate-100 text-slate-300 opacity-60";
+                                }
+                            }
+
+                            return (
+                                <button
+                                key={idx}
+                                disabled={showFeedback}
+                                onClick={() => handleOptionClick(idx)}
+                                className={btnClass}
+                                >
+                                <div className="flex justify-between items-center relative z-10">
+                                    <span>{option}</span>
+                                    {showFeedback && idx === quizQuestions[currentQuestionIndex].correctIndex && <Icons.CheckCircle className="text-emerald-600" />}
+                                    {showFeedback && idx === selectedOption && idx !== quizQuestions[currentQuestionIndex].correctIndex && <Icons.XCircle className="text-red-600" />}
+                                </div>
+                                </button>
+                            );
+                            })}
+                        </div>
+
+                        {showFeedback && (
+                            <div className="animate-slide-up bg-slate-50 p-5 rounded-xl border border-slate-200 mt-4 shadow-inner">
+                            <div className="flex items-center gap-2 mb-2">
+                                {feedback.isCorrect ? (
+                                <span className="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-sm font-bold">Correct (+5分)</span>
+                                ) : (
+                                <span className="bg-red-100 text-red-700 px-3 py-1 rounded-full text-sm font-bold">Wrong</span>
+                                )}
+                            </div>
+                            <div className={`font-bold text-lg mb-2 ${feedback.isCorrect ? 'text-emerald-700' : 'text-red-700'}`}>
+                                {feedback.text}
+                            </div>
+                            <div className="text-slate-600 text-base leading-relaxed">
+                                <span className="font-bold text-slate-700">正確答案：</span>
+                                {quizQuestions[currentQuestionIndex].options[quizQuestions[currentQuestionIndex].correctIndex]}
+                            </div>
+                            <button 
+                                onClick={nextQuestion}
+                                className="mt-4 w-full py-3 bg-slate-800 hover:bg-black text-white rounded-lg font-bold flex items-center justify-center gap-2 transition-colors"
+                            >
+                                {currentQuestionIndex < quizQuestions.length - 1 ? '下一題' : '查看結果'} <Icons.ChevronRight size={18} />
+                            </button>
+                            </div>
+                        )}
+                        </div>
+                    )}
+
+                    {/* --- 結算頁面 (Result) --- */}
+                    {gameState === 'result' && (
+                        <div className="text-center space-y-8 animate-fade-in py-4">
+                        <div className="relative inline-block">
+                            <div className="text-6xl p-4 rounded-full bg-slate-50 border-4 border-dashed border-slate-200">
+                            <Icons.Trophy size={64} className={getRank(score).color} />
+                            </div>
+                        </div>
+                        
+                        <div className="space-y-1">
+                            <p className="text-slate-500 font-medium uppercase tracking-wider text-sm">Final Score</p>
+                            <div className="text-6xl font-black text-slate-800 flex items-baseline justify-center gap-1">
+                            {score} <span className="text-2xl text-slate-400 font-medium">/ 100</span>
+                            </div>
+                        </div>
+
+                        <div className="p-6 bg-gradient-to-br from-slate-50 to-white rounded-2xl border border-slate-200 shadow-sm">
+                            <p className="text-sm text-slate-400 mb-1 font-medium">獲得稱號</p>
+                            <h2 className={`text-3xl font-bold mb-3 ${getRank(score).color}`}>
+                            {getRank(score).title}
+                            </h2>
+                            <div className="w-16 h-1 bg-slate-200 mx-auto mb-3 rounded-full"></div>
+                            <p className="text-slate-600 leading-relaxed">
+                            {getRank(score).msg}
+                            </p>
+                        </div>
+
+                        <div className="flex flex-col gap-3">
+                            <button 
+                                onClick={startGame}
+                                className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xl font-bold shadow-lg flex items-center justify-center gap-2 transition-all hover:shadow-xl"
+                            >
+                                <Icons.RefreshCw /> 再挑戰一次
+                            </button>
+                            <button 
+                                onClick={() => setGameState('history')}
+                                className="w-full py-3 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl text-lg font-bold transition-colors flex items-center justify-center gap-2"
+                            >
+                                <Icons.History size={20}/> 查看所有紀錄
+                            </button>
+                        </div>
+                        </div>
+                    )}
+
+                    {/* --- 歷史紀錄 (History) --- */}
+                    {gameState === 'history' && (
+                        <div className="h-full flex flex-col animate-fade-in">
+                            <div className="flex justify-between items-center mb-6">
+                                <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
+                                    <Icons.History className="text-emerald-600"/> 稱號紀錄
+                                </h2>
+                                <button 
+                                    onClick={() => setGameState('start')}
+                                    className="px-4 py-2 bg-slate-200 hover:bg-slate-300 rounded-lg text-sm font-bold transition-colors flex items-center gap-1"
+                                >
+                                    <Icons.ChevronLeft size={16}/> 返回
+                                </button>
+                            </div>
+
+                            <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 mb-4" style={{maxHeight: '400px'}}>
+                                {history.length === 0 ? (
+                                    <div className="h-64 flex flex-col items-center justify-center text-slate-400 border-2 border-dashed border-slate-200 rounded-xl bg-slate-50">
+                                        <Icons.Trophy size={48} className="mb-2 opacity-50"/>
+                                        <p>目前還沒有任何紀錄喔！</p>
+                                        <p className="text-sm">快去挑戰看看吧！</p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-3">
+                                        {history.map((record, idx) => (
+                                            <div key={idx} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between hover:border-emerald-200 transition-colors">
+                                                <div className="flex items-center gap-4">
+                                                    <div className={`text-2xl font-bold w-12 text-center ${record.score >= 60 ? 'text-emerald-600' : 'text-slate-400'}`}>
+                                                        {record.score}
+                                                    </div>
+                                                    <div>
+                                                        <div className={`font-bold ${record.color} text-lg`}>{record.title}</div>
+                                                        <div className="text-xs text-slate-400 font-mono mt-1">{record.date}</div>
+                                                    </div>
+                                                </div>
+                                                {idx === 0 && (
+                                                    <span className="bg-emerald-100 text-emerald-700 text-xs px-2 py-1 rounded-full font-bold">最新</span>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            {history.length > 0 && (
+                                <button 
+                                    onClick={clearHistory}
+                                    className="w-full py-3 border-2 border-red-100 text-red-400 hover:bg-red-50 hover:text-red-500 hover:border-red-200 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2"
+                                >
+                                    <Icons.Trash2 size={18}/> 清除所有紀錄
+                                </button>
+                            )}
+                        </div>
+                    )}
+
+                    </div>
+                </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<QuizApp />);
+    </script>
+</body>
+</html>
