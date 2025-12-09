@@ -397,10 +397,15 @@
             };
 
             const clearHistory = () => {
-                if (confirm("確定要刪除所有紀錄嗎？此動作無法復原。")) {
-                    setHistory([]);
-                    localStorage.removeItem('waterQuizHistory');
-                    alert("紀錄已刪除");
+                const password = prompt("請輸入密碼以刪除紀錄：");
+                if (password === "7772041") {
+                    if (confirm("確定要刪除所有紀錄嗎？此動作無法復原。")) {
+                        setHistory([]);
+                        localStorage.removeItem('waterQuizHistory');
+                        alert("紀錄已刪除");
+                    }
+                } else if (password !== null) {
+                    alert("密碼錯誤！");
                 }
             };
 
