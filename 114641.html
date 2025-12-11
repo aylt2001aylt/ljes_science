@@ -164,11 +164,12 @@
             { id: 6, question: "如果將長條形磁鐵懸掛自由轉動，靜止後它的 N 極會指向哪個方向？", options: [{ text: "東方", correct: false }, { text: "西方", correct: false }, { text: "南方", correct: false }, { text: "北方", correct: true }], rationale: "懸掛的磁鐵就像一個大的指北針，其 N 極會受到地磁 S 極（在地理北極附近）吸引而指向北方。" },
             { id: 7, question: "當磁鐵的 S 極靠近指北針的「指北端 (N 極)」時，會發生什麼現象？", options: [{ text: "互相排斥", correct: false }, { text: "互相吸引", correct: true }, { text: "沒有反應", correct: false }, { text: "磁性消失", correct: false }], rationale: "根據「異極相吸」的原理，磁鐵的 S 極會吸引指北針的 N 極。" },
             { id: 8, question: "下列哪一個操作可以證明指北針的指針是磁鐵做的？", options: [{ text: "用手撥動看會不會轉", correct: false }, { text: "用磁鐵靠近觀察相吸相斥", correct: true }, { text: "泡在水裡看會不會浮", correct: false }, { text: "曬太陽看會不會熱", correct: false }], rationale: "因為只有磁鐵（或磁性物質）之間會有明確的同極相斥、異極相吸反應。" },
+            // --- 以下為根據練習單新增的題目 ---
             { id: 9, question: "下列哪一項物品靠近指北針時，指北針的指針「不會」產生偏轉？", options: [{ text: "迴紋針", correct: false }, { text: "鐵釘", correct: false }, { text: "塑膠吸管", correct: true }, { text: "馬蹄形磁鐵", correct: false }], rationale: "塑膠不具磁性，也不會被磁鐵吸引，因此不會影響指北針。迴紋針與鐵釘（鐵製品）及磁鐵都會影響指針。" },
-            { id: 10, question: "下列哪一項物品靠近指北針時，「會」使指針產生偏轉？", options: [{ text: "鐵釘", correct: true }, { text: "橡皮擦", correct: false }, { text: "色紙", correct: false }, { text: "塑膠尺", correct: false }], rationale: "鐵釘是鐵製品，會被指北針的磁性吸引，造成磁場變化而使指針偏轉；其他選項皆為非磁性物質。" },
+            { id: 10, question: "下列哪一組物品若靠近指北針，「皆會」使指針產生偏轉？", options: [{ text: "迴紋針、鐵釘", correct: true }, { text: "橡皮擦、塑膠尺", correct: false }, { text: "色紙、吸管", correct: false }, { text: "銅線、鋁罐", correct: false }], rationale: "鐵製品（如迴紋針、鐵釘）與磁鐵是磁性物質，會影響磁場。銅、鋁、塑膠、橡膠等非磁性物質則不會。" },
             { id: 11, question: "如果想要自製指北針，將下列哪一種物品懸掛讓它自由旋轉，靜止後「會」指向南北方位？", options: [{ text: "木製牙籤", correct: false }, { text: "強力磁鐵", correct: true }, { text: "一般的鐵尺", correct: false }, { text: "塑膠尺", correct: false }], rationale: "只有本身具有磁性的物體（磁鐵）才會受到地磁影響而指向南北方；普通的鐵尺若未經磁化則不會指向固定方位。" },
             { id: 12, question: "關於「地磁」與「地理方位」的對應關係，下列敘述何者正確？", options: [{ text: "地磁 S 極在地理北極附近", correct: true }, { text: "地磁 N 極在地理北極附近", correct: false }, { text: "地磁與地理方位完全重疊", correct: false }, { text: "地球內部沒有磁場", correct: false }], rationale: "地球內部的磁場方向與地理方位相反：地磁 S 極位於地理北極附近（吸引指北針N極），地磁 N 極位於地理南極附近。" },
-            { id: 13, question: "當我們把磁鐵的 N 極靠近指北針時，指北針的 S 極（通常是白色或無色端）會有什麼反應？", options: [{ text: "被吸引靠近磁鐵", correct: true }, { text: "被排斥遠離磁鐵", correct: false }, { text: "完全不動", correct: false }, { text: "左右不停擺動", correct: false }], rationale: "根據「異極相吸」原理，磁鐵的 N 極會吸引指北針的 S 極。" }
+            { id: 13, question: "練習單中地球內部就像有一個大磁鐵，這個天然的磁性我們稱為什麼？", options: [{ text: "地心引力", correct: false }, { text: "地磁", correct: true }, { text: "地核", correct: false }, { text: "地層", correct: false }], rationale: "地球內部產生的磁場稱為「地磁」。" }
         ];
 
         // --- 狀態變數 ---
