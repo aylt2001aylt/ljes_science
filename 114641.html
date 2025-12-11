@@ -1,0 +1,625 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { RotateCw, RefreshCw, Eye, EyeOff, Info, Move, FlaskConical, ClipboardCheck, ChevronRight, CheckCircle2, XCircle, RotateCcw } from 'lucide-react';
+
+// --- Global Constants & Types ---
+const COLORS = {
+  bg: 'bg-slate-50',
+  panel: 'bg-white',
+  text: 'text-slate-800',
+  textLight: 'text-slate-500',
+  primary: 'bg-blue-600',
+  primaryHover: 'hover:bg-blue-700',
+  magnetN: '#ef4444', 
+  magnetS: '#3b82f6', 
+};
+
+// --- Quiz Data (Updated with new questions from PDF) ---
+const QUIZ_DATA = [
+    {
+      id: 1,
+      question: "指北針的指針本身具有磁性，它其實就是一種什麼物體？",
+      options: [
+        { text: "小磁鐵", correct: true },
+        { text: "銅片", correct: false },
+        { text: "塑膠片", correct: false },
+        { text: "鐵片", correct: false }
+      ],
+      rationale: "指北針的指針受到磁鐵影響會產生偏轉，且靜止時會指向南北方，顯示它具有磁性，本身就是一個小磁鐵。"
+    },
+    {
+      id: 2,
+      question: "當我們拿磁鐵的 N 極靠近靜止指北針的「指北端 (N 極)」時，會發生什麼現象？",
+      options: [
+        { text: "互相吸引", correct: false },
+        { text: "互相排斥", correct: true },
+        { text: "指針完全不動", correct: false },
+        { text: "指針會不停旋轉", correct: false }
+      ],
+      rationale: "根據磁鐵「同極相斥」的特性，磁鐵的 N 極會排斥指北針的 N 極。"
+    },
+    {
+      id: 3,
+      question: "地球內部就像有一個大型的磁鐵，我們稱之為什麼？",
+      options: [
+        { text: "地心引力", correct: false },
+        { text: "地磁", correct: true },
+        { text: "地核", correct: false },
+        { text: "地層", correct: false }
+      ],
+      rationale: "地球內部產生的磁場稱為「地磁」，它就像一個巨大的磁鐵影響著地表的磁性物質。"
+    },
+    {
+      id: 4,
+      question: "關於「地磁 S 極」的位置，下列敘述何者是正確的？",
+      options: [
+        { text: "靠近地理南極", correct: false },
+        { text: "靠近地理北極", correct: true },
+        { text: "位於赤道上", correct: false },
+        { text: "位置每天改變", correct: false }
+      ],
+      rationale: "地磁的 S 極位於地理北極附近，這就是為什麼指北針的 N 極會被吸引指向北方。"
+    },
+    {
+      id: 5,
+      question: "為什麼指北針的指針靜止時，N 極總是會指向北方？",
+      options: [
+        { text: "受到地磁 S 極的吸引", correct: true },
+        { text: "受到地磁 N 極的吸引", correct: false },
+        { text: "受到太陽引力影響", correct: false },
+        { text: "受到風向影響", correct: false }
+      ],
+      rationale: "指北針的 N 極受到位於地理北極附近的「地磁 S 極」吸引，符合異極相吸的原理。"
+    },
+    {
+      id: 6,
+      question: "如果將長條形磁鐵懸掛自由轉動，靜止後它的 N 極會指向哪個方向？",
+      options: [
+        { text: "東方", correct: false },
+        { text: "西方", correct: false },
+        { text: "南方", correct: false },
+        { text: "北方", correct: true }
+      ],
+      rationale: "懸掛的磁鐵就像一個大的指北針，其 N 極會受到地磁 S 極（在地理北極附近）吸引而指向北方。"
+    },
+    {
+      id: 7,
+      question: "當磁鐵的 S 極靠近指北針的「指北端 (N 極)」時，會發生什麼現象？",
+      options: [
+        { text: "互相排斥", correct: false },
+        { text: "互相吸引", correct: true },
+        { text: "沒有反應", correct: false },
+        { text: "磁性消失", correct: false }
+      ],
+      rationale: "根據「異極相吸」的原理，磁鐵的 S 極會吸引指北針的 N 極。"
+    },
+    {
+      id: 8,
+      question: "下列哪一個操作可以證明指北針的指針是磁鐵做的？",
+      options: [
+        { text: "用手撥動看會不會轉", correct: false },
+        { text: "用磁鐵靠近觀察相吸相斥", correct: true },
+        { text: "泡在水裡看會不會浮", correct: false },
+        { text: "曬太陽看會不會熱", correct: false }
+      ],
+      rationale: "因為只有磁鐵（或磁性物質）之間會有明確的同極相斥、異極相吸反應。"
+    },
+    // New Questions from PDF
+    {
+      id: 9,
+      question: "下列哪一項物品靠近指北針時，指北針的指針**不會**產生偏轉？",
+      options: [
+        { text: "迴紋針", correct: false },
+        { text: "鐵釘", correct: false },
+        { text: "塑膠吸管", correct: true },
+        { text: "馬蹄形磁鐵", correct: false }
+      ],
+      rationale: "塑膠不具磁性，也不會被磁鐵吸引，因此不會影響指北針。迴紋針與鐵釘（鐵製品）及磁鐵都會影響指針。"
+    },
+    {
+      id: 10,
+      question: "如果想要自製指北針，將下列哪一種物品懸掛讓它自由旋轉，靜止後**會**指向南北方位？",
+      options: [
+        { text: "木製牙籤", correct: false },
+        { text: "強力磁鐵", correct: true },
+        { text: "一般的鐵尺", correct: false },
+        { text: "塑膠尺", correct: false }
+      ],
+      rationale: "只有本身具有磁性的物體（磁鐵）才會受到地磁影響而指向南北方；普通的鐵尺若未經磁化則不會指向固定方位。"
+    },
+    {
+      id: 11,
+      question: "關於「地磁」與「地理方位」的對應關係，下列敘述何者正確？",
+      options: [
+        { text: "地磁 S 極在地理北極附近", correct: true },
+        { text: "地磁 N 極在地理北極附近", correct: false },
+        { text: "地磁與地理方位完全重疊", correct: false },
+        { text: "地球內部沒有磁場", correct: false }
+      ],
+      rationale: "地球內部的磁場方向與地理方位相反：地磁 S 極位於地理北極附近（吸引指北針N極），地磁 N 極位於地理南極附近。"
+    },
+    {
+      id: 12,
+      question: "當我們把磁鐵的 N 極靠近指北針時，指北針的 S 極（通常是白色或無色端）會有什麼反應？",
+      options: [
+        { text: "被吸引靠近磁鐵", correct: true },
+        { text: "被排斥遠離磁鐵", correct: false },
+        { text: "完全不動", correct: false },
+        { text: "左右不停擺動", correct: false }
+      ],
+      rationale: "根據「異極相吸」原理，磁鐵的 N 極會吸引指北針的 S 極。"
+    }
+];
+
+// --- Sub-Component: Magnet Experiment (Virtual Lab) ---
+const MagnetExperiment = () => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [magnetPos, setMagnetPos] = useState({ x: 200, y: 100 }); 
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [isFlipped, setIsFlipped] = useState(false);
+  const [showField, setShowField] = useState(false);
+  const [needleAngle, setNeedleAngle] = useState(0);
+
+  const EARTH_FIELD_STRENGTH = 2; 
+  const MAGNET_STRENGTH = 200000; 
+  const MAGNET_W = 48;
+  const MAGNET_H = 192;
+  const MAGNET_HALF_W = MAGNET_W / 2;
+  const MAGNET_HALF_H = MAGNET_H / 2;
+
+  // Global Drag Logic
+  useEffect(() => {
+    const handleGlobalMouseMove = (e: MouseEvent | TouchEvent) => {
+      if (!isDragging || !containerRef.current) return;
+      
+      let clientX, clientY;
+      if (window.TouchEvent && e instanceof TouchEvent) {
+        clientX = e.touches[0].clientX;
+        clientY = e.touches[0].clientY;
+      } else if (e instanceof MouseEvent) {
+        clientX = e.clientX;
+        clientY = e.clientY;
+      } else return;
+
+      const rect = containerRef.current.getBoundingClientRect();
+      const x = clientX - rect.left - dragOffset.x;
+      const y = clientY - rect.top - dragOffset.y;
+      const boundedX = Math.max(0, Math.min(rect.width - MAGNET_W, x));
+      const boundedY = Math.max(0, Math.min(rect.height - MAGNET_H, y));
+
+      setMagnetPos({ x: boundedX, y: boundedY });
+    };
+
+    const handleGlobalMouseUp = () => setIsDragging(false);
+
+    if (isDragging) {
+      window.addEventListener('mousemove', handleGlobalMouseMove);
+      window.addEventListener('mouseup', handleGlobalMouseUp);
+      window.addEventListener('touchmove', handleGlobalMouseMove, { passive: false });
+      window.addEventListener('touchend', handleGlobalMouseUp);
+    }
+
+    return () => {
+      window.removeEventListener('mousemove', handleGlobalMouseMove);
+      window.removeEventListener('mouseup', handleGlobalMouseUp);
+      window.removeEventListener('touchmove', handleGlobalMouseMove);
+      window.removeEventListener('touchend', handleGlobalMouseUp);
+    };
+  }, [isDragging, dragOffset]);
+
+  // Compass Physics
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+
+    const magnetCenterX = magnetPos.x + MAGNET_HALF_W - centerX;
+    const magnetCenterY = magnetPos.y + MAGNET_HALF_H - centerY;
+    const poleOffset = 70; 
+    
+    const pole1 = { x: magnetCenterX, y: magnetCenterY - poleOffset }; 
+    const pole2 = { x: magnetCenterX, y: magnetCenterY + poleOffset }; 
+    
+    const nPole = isFlipped ? pole2 : pole1;
+    const sPole = isFlipped ? pole1 : pole2;
+
+    const limitMag = (m: number) => Math.max(m, 1000); 
+    const magN = Math.pow(Math.sqrt(nPole.x**2 + nPole.y**2), 3);
+    const magS = Math.pow(Math.sqrt(sPole.x**2 + sPole.y**2), 3);
+
+    const vecBx_magnet = MAGNET_STRENGTH * (-nPole.x / limitMag(magN) + (sPole.x) / limitMag(magS));
+    const vecBy_magnet = MAGNET_STRENGTH * (-nPole.y / limitMag(magN) + (sPole.y) / limitMag(magS));
+
+    const vecBx_total = vecBx_magnet + 0;
+    const vecBy_total = vecBy_magnet - EARTH_FIELD_STRENGTH;
+
+    const angleRad = Math.atan2(vecBy_total, vecBx_total);
+    const angleDeg = angleRad * (180 / Math.PI);
+    setNeedleAngle(angleDeg + 90);
+  }, [magnetPos, isFlipped]);
+
+  const handleMouseDown = (e: React.MouseEvent | React.TouchEvent) => {
+    if ('button' in e && e.button !== 0) return;
+    let clientX, clientY;
+    if ('touches' in e) {
+      clientX = e.touches[0].clientX;
+      clientY = e.touches[0].clientY;
+    } else {
+      clientX = (e as React.MouseEvent).clientX;
+      clientY = (e as React.MouseEvent).clientY;
+    }
+    const target = e.currentTarget as HTMLElement;
+    const rect = target.getBoundingClientRect();
+    setDragOffset({ x: clientX - rect.left, y: clientY - rect.top });
+    setIsDragging(true);
+  };
+
+  return (
+    <div className="flex flex-col md:flex-row gap-6 h-full min-h-[600px]">
+      {/* Simulation Container */}
+      <div 
+        className="flex-1 bg-white rounded-3xl shadow-lg relative overflow-hidden border border-slate-200 touch-none select-none min-h-[500px]"
+        ref={containerRef}
+      >
+        <div className="absolute inset-0 opacity-10 pointer-events-none" 
+             style={{ backgroundImage: 'radial-gradient(#94a3b8 1px, transparent 1px)', backgroundSize: '30px 30px' }}></div>
+        
+        {/* Background Field */}
+        {showField && (
+           <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-20 transition-opacity duration-700">
+             <div className="flex flex-col items-center h-full justify-between py-10">
+               <span className="text-4xl font-bold text-slate-300">北方 (North)</span>
+               <span className="text-4xl font-bold text-slate-300">南方 (South)</span>
+             </div>
+             <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-[600px] h-[600px] border-[50px] border-slate-100 rounded-full opacity-50"></div>
+             </div>
+           </div>
+        )}
+
+        {/* Compass */}
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10">
+            <div className="relative w-48 h-48 md:w-64 md:h-64 rounded-full shadow-2xl border-[6px] border-slate-300 bg-white flex items-center justify-center">
+                <div className="absolute inset-0 rounded-full border border-slate-200 m-2 bg-slate-50"></div>
+                {/* Labels */}
+                <div className="absolute inset-4 rounded-full pointer-events-none z-0 text-slate-400 font-bold">
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 flex flex-col items-center"><span className="text-red-500 text-xl">北</span><span className="text-xs">N</span></div>
+                    <div className="absolute bottom-0 left-1/2 -translate-x-1/2 flex flex-col-reverse items-center"><span className="text-slate-700 text-xl">南</span><span className="text-xs">S</span></div>
+                    <div className="absolute right-0 top-1/2 -translate-y-1/2 flex flex-col items-center mr-1"><span className="text-slate-700 text-xl">東</span><span className="text-xs">E</span></div>
+                    <div className="absolute left-0 top-1/2 -translate-y-1/2 flex flex-col items-center ml-1"><span className="text-slate-700 text-xl">西</span><span className="text-xs">W</span></div>
+                </div>
+                {/* Needle */}
+                <div 
+                    className="w-6 h-36 md:h-48 absolute transition-transform duration-150 ease-out filter drop-shadow-md z-10"
+                    style={{ transform: `rotate(${needleAngle}deg)` }}
+                >
+                    <div className="absolute top-0 left-0 w-full h-1/2 bg-red-500 flex items-start justify-center pt-2 rounded-t-full"><span className="text-white text-[10px] transform -rotate-180">N</span></div>
+                    <div className="absolute bottom-0 left-0 w-full h-1/2 bg-slate-100 flex items-end justify-center pb-2 border-t border-slate-200 rounded-b-full"><span className="text-slate-500 text-[10px]">S</span></div>
+                    <div className="absolute top-1/2 left-1/2 w-3 h-3 bg-yellow-400 rounded-full border border-yellow-600 -translate-x-1/2 -translate-y-1/2 z-20"></div>
+                </div>
+            </div>
+        </div>
+
+        {/* Magnet */}
+        <div 
+            className="absolute z-30 cursor-grab active:cursor-grabbing group"
+            style={{ 
+                left: magnetPos.x, top: magnetPos.y, 
+                width: `${MAGNET_W}px`, height: `${MAGNET_H}px`,
+                transition: isDragging ? 'none' : 'all 0.3s ease-out' 
+            }}
+            onMouseDown={handleMouseDown}
+            onTouchStart={handleMouseDown}
+        >
+            <div className={`w-full h-full rounded-lg shadow-2xl flex flex-col border-2 border-slate-400 overflow-hidden transform transition-transform ${isDragging ? 'scale-105 ring-4 ring-blue-200' : 'scale-100'}`}>
+                {isFlipped ? (
+                    <>
+                        <div className="flex-1 bg-blue-500 flex flex-col items-center justify-center text-white font-bold text-xl border-b border-blue-600">S</div>
+                        <div className="flex-1 bg-red-500 flex flex-col items-center justify-center text-white font-bold text-xl border-t border-red-600">N</div>
+                    </>
+                ) : (
+                    <>
+                        <div className="flex-1 bg-red-500 flex flex-col items-center justify-center text-white font-bold text-xl border-b border-red-600">N</div>
+                        <div className="flex-1 bg-blue-500 flex flex-col items-center justify-center text-white font-bold text-xl border-t border-blue-600">S</div>
+                    </>
+                )}
+            </div>
+
+            {/* Field lines hint for vertical magnet */}
+            {showField && (
+                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[200px] h-[300px] pointer-events-none opacity-30 transition-opacity">
+                    <svg width="100%" height="100%" viewBox="0 0 200 300">
+                         <path d="M 100 50 Q 0 50 0 150 Q 0 250 100 250" fill="none" stroke="black" strokeWidth="2" strokeDasharray="5,5" />
+                         <path d="M 100 50 Q 200 50 200 150 Q 200 250 100 250" fill="none" stroke="black" strokeWidth="2" strokeDasharray="5,5" />
+                    </svg>
+                </div>
+            )}
+        </div>
+
+        {/* Hint Overlay */}
+        <div className="absolute bottom-4 left-4 bg-white/90 p-4 rounded-xl shadow border border-slate-100 max-w-xs backdrop-blur-sm z-20 pointer-events-none">
+            <h3 className="font-bold text-slate-800 flex items-center gap-2 text-sm"><Info size={16} className="text-blue-500" /> 實驗觀察</h3>
+            <p className="text-slate-600 text-xs mt-1 leading-relaxed">
+                目前磁鐵上方是 <span className={`font-bold ${isFlipped ? 'text-blue-600' : 'text-red-600'}`}>{isFlipped ? 'S極' : 'N極'}</span>。
+                試著靠近指北針觀察「同極相斥、異極相吸」現象。
+            </p>
+        </div>
+      </div>
+
+      {/* Control Panel */}
+      <div className="w-full md:w-72 flex flex-col gap-4">
+        <div className="bg-white p-5 rounded-3xl shadow-lg border border-slate-100 flex-1">
+            <h2 className="font-bold text-slate-700 mb-4 flex items-center gap-2"><Move size={18} /> 道具控制</h2>
+            <div className="space-y-3">
+                <button 
+                    onClick={() => setIsFlipped(!isFlipped)}
+                    className="w-full py-3 px-4 bg-white border-2 border-slate-200 hover:border-blue-400 text-slate-700 rounded-xl flex items-center justify-between transition-all group active:scale-95 text-sm"
+                >
+                    <span className="font-medium">翻轉磁鐵</span>
+                    <RotateCw size={18} className={`text-slate-400 transition-transform duration-500 ${isFlipped ? 'rotate-180 text-blue-500' : ''}`} />
+                </button>
+                <button 
+                    onClick={() => setShowField(!showField)}
+                    className={`w-full py-3 px-4 border-2 rounded-xl flex items-center justify-between transition-all text-sm ${showField ? 'bg-blue-50 border-blue-500 text-blue-700' : 'bg-white border-slate-200 hover:border-blue-300 text-slate-700'}`}
+                >
+                    <span className="font-medium">{showField ? '隱藏輔助線' : '顯示磁力線'}</span>
+                    {showField ? <Eye size={18} /> : <EyeOff size={18} className="text-slate-400" />}
+                </button>
+                <button 
+                    onClick={() => { setMagnetPos({x: 200, y: 100}); setNeedleAngle(0); setIsFlipped(false); }}
+                    className="w-full py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl flex items-center justify-between transition-colors mt-6 text-sm"
+                >
+                    <span className="font-medium">重置位置</span>
+                    <RefreshCw size={18} />
+                </button>
+            </div>
+            <div className="mt-8 border-t border-slate-100 pt-4">
+                <h3 className="font-bold text-slate-800 mb-2 text-xs">實驗筆記</h3>
+                <ul className="text-xs text-slate-600 space-y-2 list-disc list-inside">
+                    <li>指北針也是一種小磁鐵。</li>
+                    <li><strong>同極相斥</strong>：N排斥N。</li>
+                    <li><strong>異極相吸</strong>：N吸引S。</li>
+                    <li>地磁會讓N極指向北方。</li>
+                </ul>
+            </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// --- Sub-Component: Quiz System ---
+const Quiz = () => {
+  const [currentQIndex, setCurrentQIndex] = useState(0);
+  const [selectedOption, setSelectedOption] = useState<number | null>(null);
+  const [isChecked, setIsChecked] = useState(false);
+  const [score, setScore] = useState(0);
+  const [showResult, setShowResult] = useState(false);
+
+  const currentQ = QUIZ_DATA[currentQIndex];
+
+  const handleSelect = (index: number) => {
+    if (isChecked) return;
+    setSelectedOption(index);
+  };
+
+  const handleCheck = () => {
+    if (selectedOption === null) return;
+    setIsChecked(true);
+    if (currentQ.options[selectedOption].correct) {
+      setScore(s => s + 1);
+    }
+  };
+
+  const handleNext = () => {
+    if (currentQIndex < QUIZ_DATA.length - 1) {
+      setCurrentQIndex(p => p + 1);
+      setSelectedOption(null);
+      setIsChecked(false);
+    } else {
+      setShowResult(true);
+    }
+  };
+
+  const handleRetry = () => {
+    setCurrentQIndex(0);
+    setSelectedOption(null);
+    setIsChecked(false);
+    setScore(0);
+    setShowResult(false);
+  };
+
+  if (showResult) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full min-h-[500px] bg-white rounded-3xl shadow-lg p-8 text-center animate-fade-in">
+        <div className="mb-6 bg-blue-50 p-6 rounded-full">
+            <ClipboardCheck size={64} className="text-blue-500" />
+        </div>
+        <h2 className="text-3xl font-bold text-slate-800 mb-2">測驗完成！</h2>
+        <p className="text-slate-500 mb-6">你已經完成了所有的練習題</p>
+        
+        <div className="flex items-center justify-center gap-4 mb-8">
+            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 min-w-[120px]">
+                <div className="text-sm text-slate-500 mb-1">總分</div>
+                <div className="text-3xl font-bold text-blue-600">{score} / {QUIZ_DATA.length}</div>
+            </div>
+            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 min-w-[120px]">
+                <div className="text-sm text-slate-500 mb-1">正確率</div>
+                <div className="text-3xl font-bold text-green-600">{Math.round((score/QUIZ_DATA.length)*100)}%</div>
+            </div>
+        </div>
+
+        <button 
+            onClick={handleRetry}
+            className="flex items-center gap-2 px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold transition-colors"
+        >
+            <RotateCcw size={20} /> 重新測驗
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="h-full flex flex-col md:flex-row gap-6 min-h-[600px]">
+        {/* Question Area */}
+        <div className="flex-1 bg-white p-6 md:p-10 rounded-3xl shadow-lg border border-slate-100 flex flex-col">
+            <div className="flex justify-between items-center mb-6">
+                <span className="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full uppercase tracking-wider">Question {currentQIndex + 1} of {QUIZ_DATA.length}</span>
+                <span className="text-slate-400 text-xs">Score: {score}</span>
+            </div>
+            
+            <h3 className="text-xl md:text-2xl font-bold text-slate-800 mb-8 leading-relaxed">
+                {currentQ.question}
+            </h3>
+
+            <div className="space-y-3 flex-1">
+                {currentQ.options.map((opt, idx) => {
+                    let style = "border-slate-200 hover:border-blue-400 hover:bg-slate-50";
+                    let icon = null;
+
+                    if (isChecked) {
+                        if (opt.correct) {
+                            style = "border-green-500 bg-green-50 text-green-800";
+                            icon = <CheckCircle2 className="text-green-500" />;
+                        } else if (selectedOption === idx) {
+                            style = "border-red-400 bg-red-50 text-red-800";
+                            icon = <XCircle className="text-red-500" />;
+                        } else {
+                            style = "border-slate-100 opacity-50";
+                        }
+                    } else if (selectedOption === idx) {
+                        style = "border-blue-500 bg-blue-50 text-blue-800 ring-2 ring-blue-100";
+                    }
+
+                    return (
+                        <button
+                            key={idx}
+                            onClick={() => handleSelect(idx)}
+                            disabled={isChecked}
+                            className={`w-full p-4 border-2 rounded-xl text-left font-medium transition-all flex items-center justify-between group ${style}`}
+                        >
+                            <span>{opt.text}</span>
+                            {icon}
+                        </button>
+                    );
+                })}
+            </div>
+
+            {/* Bottom Actions */}
+            <div className="mt-8 pt-6 border-t border-slate-100 flex justify-end">
+                {!isChecked ? (
+                    <button 
+                        onClick={handleCheck}
+                        disabled={selectedOption === null}
+                        className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white rounded-xl font-bold transition-colors"
+                    >
+                        檢查答案
+                    </button>
+                ) : (
+                    <button 
+                        onClick={handleNext}
+                        className="flex items-center gap-2 px-6 py-3 bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-bold transition-colors"
+                    >
+                        {currentQIndex < QUIZ_DATA.length - 1 ? '下一題' : '查看結果'} <ChevronRight size={18} />
+                    </button>
+                )}
+            </div>
+        </div>
+
+        {/* Feedback Panel (Shows only after checking) */}
+        <div className={`w-full md:w-80 transition-all duration-500 ${isChecked ? 'opacity-100 translate-x-0' : 'opacity-50 pointer-events-none md:opacity-100'}`}>
+            <div className="bg-slate-50 p-6 rounded-3xl border border-slate-200 h-full">
+                <h4 className="font-bold text-slate-700 mb-4 flex items-center gap-2">
+                    <Info size={18} className={isChecked ? 'text-blue-500' : 'text-slate-300'} />
+                    學習解析
+                </h4>
+                {isChecked ? (
+                    <div className="animate-fade-in">
+                        <p className={`text-lg font-bold mb-2 ${currentQ.options[selectedOption!].correct ? 'text-green-600' : 'text-red-500'}`}>
+                            {currentQ.options[selectedOption!].correct ? '答對了！' : '再想一想...'}
+                        </p>
+                        <p className="text-slate-600 text-sm leading-relaxed">
+                            {currentQ.rationale}
+                        </p>
+                    </div>
+                ) : (
+                    <div className="text-slate-400 text-sm text-center mt-10">
+                        選擇一個答案並按下「檢查答案」來查看解析。
+                    </div>
+                )}
+            </div>
+        </div>
+    </div>
+  );
+};
+
+// --- Main App Component ---
+const App = () => {
+  const [activeTab, setActiveTab] = useState<'lab' | 'quiz'>('lab');
+
+  return (
+    <div className={`min-h-screen ${COLORS.bg} font-sans text-slate-800`}>
+      {/* Header */}
+      <header className="bg-white border-b border-slate-200 sticky top-0 z-50">
+        <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold">4</div>
+                <h1 className="font-bold text-lg md:text-xl">指北針與地磁</h1>
+            </div>
+
+            <div className="flex bg-slate-100 p-1 rounded-xl">
+                <button 
+                    onClick={() => setActiveTab('lab')}
+                    className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${activeTab === 'lab' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                >
+                    <FlaskConical size={16} /> 虛擬實驗室
+                </button>
+                <button 
+                    onClick={() => setActiveTab('quiz')}
+                    className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${activeTab === 'quiz' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                >
+                    <ClipboardCheck size={16} /> 隨堂測驗
+                </button>
+            </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="max-w-6xl mx-auto p-4 md:p-6">
+        {activeTab === 'lab' ? (
+            <div className="animate-fade-in">
+                <div className="mb-6">
+                    <h2 className="text-2xl font-bold text-slate-800 mb-2">虛擬實驗室：磁鐵與指北針</h2>
+                    <p className="text-slate-500">拖曳磁鐵觀察指北針的變化，探索磁極之間的交互作用。</p>
+                </div>
+                <MagnetExperiment />
+            </div>
+        ) : (
+            <div className="animate-fade-in">
+                <div className="mb-6">
+                    <h2 className="text-2xl font-bold text-slate-800 mb-2">隨堂測驗：觀念驗收</h2>
+                    <p className="text-slate-500">完成12道題目，測試你對地磁與磁鐵特性的了解。</p>
+                </div>
+                <Quiz />
+            </div>
+        )}
+      </main>
+
+      {/* Simple Animations */}
+      <style>{`
+        @keyframes fade-in {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+            animation: fade-in 0.3s ease-out forwards;
+        }
+        .clip-triangle-top { clip-path: polygon(50% 0%, 0% 100%, 100% 100%); }
+        .clip-triangle-bottom { clip-path: polygon(0% 0%, 100% 0%, 50% 100%); }
+      `}</style>
+    </div>
+  );
+};
+
+export default App;
