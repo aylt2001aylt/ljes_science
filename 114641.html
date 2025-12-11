@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { RotateCw, RefreshCw, Eye, EyeOff, Info, Move, FlaskConical, ClipboardCheck, ChevronRight, CheckCircle2, XCircle, RotateCcw } from 'lucide-react';
 
-// --- Global Constants & Types ---
+// --- 全域變數與設定 ---
 const COLORS = {
   bg: 'bg-slate-50',
   panel: 'bg-white',
@@ -13,7 +13,7 @@ const COLORS = {
   magnetS: '#3b82f6', 
 };
 
-// --- Quiz Data (Updated with new questions from PDF) ---
+// --- 測驗題目資料庫 (包含新增的練習單題目) ---
 const QUIZ_DATA = [
     {
       id: 1,
@@ -103,10 +103,9 @@ const QUIZ_DATA = [
       ],
       rationale: "因為只有磁鐵（或磁性物質）之間會有明確的同極相斥、異極相吸反應。"
     },
-    // New Questions from PDF
     {
       id: 9,
-      question: "下列哪一項物品靠近指北針時，指北針的指針**不會**產生偏轉？",
+      question: "下列哪一項物品靠近指北針時，指北針的指針「不會」產生偏轉？",
       options: [
         { text: "迴紋針", correct: false },
         { text: "鐵釘", correct: false },
@@ -117,7 +116,7 @@ const QUIZ_DATA = [
     },
     {
       id: 10,
-      question: "如果想要自製指北針，將下列哪一種物品懸掛讓它自由旋轉，靜止後**會**指向南北方位？",
+      question: "如果想要自製指北針，將下列哪一種物品懸掛讓它自由旋轉，靜止後「會」指向南北方位？",
       options: [
         { text: "木製牙籤", correct: false },
         { text: "強力磁鐵", correct: true },
@@ -150,9 +149,9 @@ const QUIZ_DATA = [
     }
 ];
 
-// --- Sub-Component: Magnet Experiment (Virtual Lab) ---
+// --- 子元件：虛擬實驗室 (Magnet Experiment) ---
 const MagnetExperiment = () => {
-  const containerRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef(null);
   const [magnetPos, setMagnetPos] = useState({ x: 200, y: 100 }); 
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
@@ -167,23 +166,25 @@ const MagnetExperiment = () => {
   const MAGNET_HALF_W = MAGNET_W / 2;
   const MAGNET_HALF_H = MAGNET_H / 2;
 
-  // Global Drag Logic
+  // 處理全域拖曳事件 (確保滑鼠移出範圍也能拖曳)
   useEffect(() => {
-    const handleGlobalMouseMove = (e: MouseEvent | TouchEvent) => {
+    const handleGlobalMouseMove = (e) => {
       if (!isDragging || !containerRef.current) return;
       
       let clientX, clientY;
-      if (window.TouchEvent && e instanceof TouchEvent) {
+      if (e.touches && e.touches.length > 0) {
         clientX = e.touches[0].clientX;
         clientY = e.touches[0].clientY;
-      } else if (e instanceof MouseEvent) {
+      } else {
         clientX = e.clientX;
         clientY = e.clientY;
-      } else return;
+      }
 
       const rect = containerRef.current.getBoundingClientRect();
       const x = clientX - rect.left - dragOffset.x;
       const y = clientY - rect.top - dragOffset.y;
+      
+      // 限制磁鐵不要拖出容器外
       const boundedX = Math.max(0, Math.min(rect.width - MAGNET_W, x));
       const boundedY = Math.max(0, Math.min(rect.height - MAGNET_H, y));
 
@@ -207,7 +208,7 @@ const MagnetExperiment = () => {
     };
   }, [isDragging, dragOffset]);
 
-  // Compass Physics
+  // 計算指針角度的物理引擎
   useEffect(() => {
     if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
@@ -218,16 +219,19 @@ const MagnetExperiment = () => {
     const magnetCenterY = magnetPos.y + MAGNET_HALF_H - centerY;
     const poleOffset = 70; 
     
+    // 計算磁極位置
     const pole1 = { x: magnetCenterX, y: magnetCenterY - poleOffset }; 
     const pole2 = { x: magnetCenterX, y: magnetCenterY + poleOffset }; 
     
     const nPole = isFlipped ? pole2 : pole1;
     const sPole = isFlipped ? pole1 : pole2;
 
-    const limitMag = (m: number) => Math.max(m, 1000); 
+    // 防止除以零
+    const limitMag = (m) => Math.max(m, 1000); 
     const magN = Math.pow(Math.sqrt(nPole.x**2 + nPole.y**2), 3);
     const magS = Math.pow(Math.sqrt(sPole.x**2 + sPole.y**2), 3);
 
+    // 向量加法：磁鐵磁場 + 地磁
     const vecBx_magnet = MAGNET_STRENGTH * (-nPole.x / limitMag(magN) + (sPole.x) / limitMag(magS));
     const vecBy_magnet = MAGNET_STRENGTH * (-nPole.y / limitMag(magN) + (sPole.y) / limitMag(magS));
 
@@ -239,17 +243,17 @@ const MagnetExperiment = () => {
     setNeedleAngle(angleDeg + 90);
   }, [magnetPos, isFlipped]);
 
-  const handleMouseDown = (e: React.MouseEvent | React.TouchEvent) => {
-    if ('button' in e && e.button !== 0) return;
+  const handleMouseDown = (e) => {
+    if (e.button !== undefined && e.button !== 0) return; // 只允許左鍵
     let clientX, clientY;
-    if ('touches' in e) {
+    if (e.touches && e.touches.length > 0) {
       clientX = e.touches[0].clientX;
       clientY = e.touches[0].clientY;
     } else {
-      clientX = (e as React.MouseEvent).clientX;
-      clientY = (e as React.MouseEvent).clientY;
+      clientX = e.clientX;
+      clientY = e.clientY;
     }
-    const target = e.currentTarget as HTMLElement;
+    const target = e.currentTarget;
     const rect = target.getBoundingClientRect();
     setDragOffset({ x: clientX - rect.left, y: clientY - rect.top });
     setIsDragging(true);
@@ -257,7 +261,7 @@ const MagnetExperiment = () => {
 
   return (
     <div className="flex flex-col md:flex-row gap-6 h-full min-h-[600px]">
-      {/* Simulation Container */}
+      {/* 左側：模擬實驗區 */}
       <div 
         className="flex-1 bg-white rounded-3xl shadow-lg relative overflow-hidden border border-slate-200 touch-none select-none min-h-[500px]"
         ref={containerRef}
@@ -265,7 +269,7 @@ const MagnetExperiment = () => {
         <div className="absolute inset-0 opacity-10 pointer-events-none" 
              style={{ backgroundImage: 'radial-gradient(#94a3b8 1px, transparent 1px)', backgroundSize: '30px 30px' }}></div>
         
-        {/* Background Field */}
+        {/* 背景：地磁與方位標示 */}
         {showField && (
            <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-20 transition-opacity duration-700">
              <div className="flex flex-col items-center h-full justify-between py-10">
@@ -278,18 +282,18 @@ const MagnetExperiment = () => {
            </div>
         )}
 
-        {/* Compass */}
+        {/* 中央：指北針 */}
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10">
             <div className="relative w-48 h-48 md:w-64 md:h-64 rounded-full shadow-2xl border-[6px] border-slate-300 bg-white flex items-center justify-center">
                 <div className="absolute inset-0 rounded-full border border-slate-200 m-2 bg-slate-50"></div>
-                {/* Labels */}
+                {/* 方位文字 */}
                 <div className="absolute inset-4 rounded-full pointer-events-none z-0 text-slate-400 font-bold">
                     <div className="absolute top-0 left-1/2 -translate-x-1/2 flex flex-col items-center"><span className="text-red-500 text-xl">北</span><span className="text-xs">N</span></div>
                     <div className="absolute bottom-0 left-1/2 -translate-x-1/2 flex flex-col-reverse items-center"><span className="text-slate-700 text-xl">南</span><span className="text-xs">S</span></div>
                     <div className="absolute right-0 top-1/2 -translate-y-1/2 flex flex-col items-center mr-1"><span className="text-slate-700 text-xl">東</span><span className="text-xs">E</span></div>
                     <div className="absolute left-0 top-1/2 -translate-y-1/2 flex flex-col items-center ml-1"><span className="text-slate-700 text-xl">西</span><span className="text-xs">W</span></div>
                 </div>
-                {/* Needle */}
+                {/* 旋轉的指針 */}
                 <div 
                     className="w-6 h-36 md:h-48 absolute transition-transform duration-150 ease-out filter drop-shadow-md z-10"
                     style={{ transform: `rotate(${needleAngle}deg)` }}
@@ -301,7 +305,7 @@ const MagnetExperiment = () => {
             </div>
         </div>
 
-        {/* Magnet */}
+        {/* 可拖曳磁鐵 */}
         <div 
             className="absolute z-30 cursor-grab active:cursor-grabbing group"
             style={{ 
@@ -326,7 +330,7 @@ const MagnetExperiment = () => {
                 )}
             </div>
 
-            {/* Field lines hint for vertical magnet */}
+            {/* 磁力線示意圖 */}
             {showField && (
                 <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[200px] h-[300px] pointer-events-none opacity-30 transition-opacity">
                     <svg width="100%" height="100%" viewBox="0 0 200 300">
@@ -337,17 +341,17 @@ const MagnetExperiment = () => {
             )}
         </div>
 
-        {/* Hint Overlay */}
+        {/* 提示訊息 */}
         <div className="absolute bottom-4 left-4 bg-white/90 p-4 rounded-xl shadow border border-slate-100 max-w-xs backdrop-blur-sm z-20 pointer-events-none">
             <h3 className="font-bold text-slate-800 flex items-center gap-2 text-sm"><Info size={16} className="text-blue-500" /> 實驗觀察</h3>
             <p className="text-slate-600 text-xs mt-1 leading-relaxed">
                 目前磁鐵上方是 <span className={`font-bold ${isFlipped ? 'text-blue-600' : 'text-red-600'}`}>{isFlipped ? 'S極' : 'N極'}</span>。
-                試著靠近指北針觀察「同極相斥、異極相吸」現象。
+                試著將其靠近指北針，觀察指針的反應。
             </p>
         </div>
       </div>
 
-      {/* Control Panel */}
+      {/* 右側：控制面板 */}
       <div className="w-full md:w-72 flex flex-col gap-4">
         <div className="bg-white p-5 rounded-3xl shadow-lg border border-slate-100 flex-1">
             <h2 className="font-bold text-slate-700 mb-4 flex items-center gap-2"><Move size={18} /> 道具控制</h2>
@@ -389,17 +393,17 @@ const MagnetExperiment = () => {
   );
 };
 
-// --- Sub-Component: Quiz System ---
+// --- 子元件：隨堂測驗 (Quiz) ---
 const Quiz = () => {
   const [currentQIndex, setCurrentQIndex] = useState(0);
-  const [selectedOption, setSelectedOption] = useState<number | null>(null);
+  const [selectedOption, setSelectedOption] = useState(null);
   const [isChecked, setIsChecked] = useState(false);
   const [score, setScore] = useState(0);
   const [showResult, setShowResult] = useState(false);
 
   const currentQ = QUIZ_DATA[currentQIndex];
 
-  const handleSelect = (index: number) => {
+  const handleSelect = (index) => {
     if (isChecked) return;
     setSelectedOption(index);
   };
@@ -462,7 +466,7 @@ const Quiz = () => {
 
   return (
     <div className="h-full flex flex-col md:flex-row gap-6 min-h-[600px]">
-        {/* Question Area */}
+        {/* 問題顯示區 */}
         <div className="flex-1 bg-white p-6 md:p-10 rounded-3xl shadow-lg border border-slate-100 flex flex-col">
             <div className="flex justify-between items-center mb-6">
                 <span className="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full uppercase tracking-wider">Question {currentQIndex + 1} of {QUIZ_DATA.length}</span>
@@ -506,7 +510,7 @@ const Quiz = () => {
                 })}
             </div>
 
-            {/* Bottom Actions */}
+            {/* 底部按鈕區 */}
             <div className="mt-8 pt-6 border-t border-slate-100 flex justify-end">
                 {!isChecked ? (
                     <button 
@@ -527,7 +531,7 @@ const Quiz = () => {
             </div>
         </div>
 
-        {/* Feedback Panel (Shows only after checking) */}
+        {/* 解析面板 (回答後顯示) */}
         <div className={`w-full md:w-80 transition-all duration-500 ${isChecked ? 'opacity-100 translate-x-0' : 'opacity-50 pointer-events-none md:opacity-100'}`}>
             <div className="bg-slate-50 p-6 rounded-3xl border border-slate-200 h-full">
                 <h4 className="font-bold text-slate-700 mb-4 flex items-center gap-2">
@@ -536,8 +540,8 @@ const Quiz = () => {
                 </h4>
                 {isChecked ? (
                     <div className="animate-fade-in">
-                        <p className={`text-lg font-bold mb-2 ${currentQ.options[selectedOption!].correct ? 'text-green-600' : 'text-red-500'}`}>
-                            {currentQ.options[selectedOption!].correct ? '答對了！' : '再想一想...'}
+                        <p className={`text-lg font-bold mb-2 ${currentQ.options[selectedOption].correct ? 'text-green-600' : 'text-red-500'}`}>
+                            {currentQ.options[selectedOption].correct ? '答對了！' : '再想一想...'}
                         </p>
                         <p className="text-slate-600 text-sm leading-relaxed">
                             {currentQ.rationale}
@@ -554,13 +558,13 @@ const Quiz = () => {
   );
 };
 
-// --- Main App Component ---
+// --- 主應用程式元件 ---
 const App = () => {
-  const [activeTab, setActiveTab] = useState<'lab' | 'quiz'>('lab');
+  const [activeTab, setActiveTab] = useState('lab');
 
   return (
     <div className={`min-h-screen ${COLORS.bg} font-sans text-slate-800`}>
-      {/* Header */}
+      {/* 頁面標題列 */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -585,7 +589,7 @@ const App = () => {
         </div>
       </header>
 
-      {/* Main Content */}
+      {/* 主要內容區 */}
       <main className="max-w-6xl mx-auto p-4 md:p-6">
         {activeTab === 'lab' ? (
             <div className="animate-fade-in">
@@ -606,7 +610,7 @@ const App = () => {
         )}
       </main>
 
-      {/* Simple Animations */}
+      {/* 簡單動畫樣式 */}
       <style>{`
         @keyframes fade-in {
             from { opacity: 0; transform: translateY(10px); }
