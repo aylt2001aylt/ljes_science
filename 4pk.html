@@ -5650,7 +5650,7 @@
                      setRoomCode(code);
                      setView('lobby');
                   } else {
-                     if (!inputCode) return alert("請輸入房號");
+                     if (!inputCode) return alert("請輸入戰場代碼");
                      
                      const ref = getRoomRef(inputCode);
                      const snap = await getDoc(ref);
@@ -5658,7 +5658,7 @@
                      if (snap.exists()) {
                         const data = snap.data();
                         if (data.status !== 'waiting') return alert("遊戲已開始");
-                        if (Object.keys(data.players).length >= 4) return alert("房間已滿");
+                        if (Object.keys(data.players).length >= 4) return alert("戰場已滿");
                         
                         await updateDoc(ref, {
                            [`players.${user.uid}`]: {
@@ -5843,4 +5843,5 @@
         root.render(<App />);
     </script>
 </body>
+
 </html>
