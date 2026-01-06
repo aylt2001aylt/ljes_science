@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>洛津國小自然大亂鬥</title>
+    <title>洛津大亂鬥</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -41,15 +41,15 @@
     <div id="root"></div>
 
     <script type="text/babel" data-type="module">
-        import React, { useState, useEffect, useRef, useMemo } from 'react';
+        import React, { useState, useEffect, useRef } from 'react';
         import { createRoot } from 'react-dom/client';
         import { initializeApp } from 'firebase/app';
         import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'firebase/auth';
-        import { getFirestore, doc, setDoc, getDoc, updateDoc, onSnapshot, deleteField, collection, getDocs, deleteDoc, addDoc, query, orderBy, limit } from 'firebase/firestore';
+        import { getFirestore, doc, setDoc, getDoc, updateDoc, onSnapshot, collection, getDocs, deleteDoc, addDoc, query, orderBy, limit } from 'firebase/firestore';
         import { 
-          Swords, Trophy, Heart, Users, Zap, Crown, BookOpen, Clock, Bot, 
+          Swords, Trophy, Users, Zap, Crown, BookOpen, Clock, Bot, 
           Flame, XCircle, Trash2, Skull, Target, Dices, Backpack, Eraser, 
-          Shield, Axe, Save, Upload, AlertTriangle
+          Shield, Axe, Upload
         } from 'lucide-react';
 
         // --- 設定與常數 ---
@@ -64,14 +64,12 @@
         };
 
         const DATA_EXPIRATION_MS = 40 * 60 * 1000; // 40 分鐘清除
-        const ROOM_COLLECTION = 'battle_rooms_rpg'; 
+        const ROOM_COLLECTION = 'battle_rooms'; // 使用最通用的名稱以避免權限問題
         const LEADERBOARD_COLLECTION = 'leaderboard_rpg';
         const STORAGE_KEY = 'battle_royal_rpg_v2';
         const ADMIN_PWD = "047772041";
 
         // --- 物品池 (各20種) ---
-        // 稀有度分佈參考: 1-2(1%), 3-4(2%), 5-7(3%), 8-10(4%), 11-13(5%), 14-16(6%), 17-18(8%), 19(10%), 20(15%)
-        
         const TITLES_POOL = [
           { id: "t01", name: "傳說中的", color: "text-red-600", prob: 1 },
           { id: "t02", name: "神選之子", color: "text-red-500", prob: 1 },
@@ -4972,16 +4970,23 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
         
-        // CRITICAL FIX: 強制使用 Artifacts 路徑結構，即使在本地執行也模擬 AppId
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'fight-rpg-local';
+        // --- 修正後的 Firebase 路徑邏輯 (關鍵修正) ---
+        const isCanvasEnv = typeof __app_id !== 'undefined';
+        const appId = isCanvasEnv ? __app_id : 'default-id';
 
-        // --- Helper: Get Collection Ref (統一使用 artifacts 路徑以確保權限) ---
         const getColRef = (colName) => {
+           if (isCanvasEnv) {
              return collection(db, 'artifacts', appId, 'public', 'data', colName);
+           }
+           // 本地執行使用根目錄，避免 Artifacts 權限問題
+           return collection(db, colName);
         };
         
         const getDocRef = (colName, docId) => {
+           if (isCanvasEnv) {
              return doc(db, 'artifacts', appId, 'public', 'data', colName, docId);
+           }
+           return doc(db, colName, docId);
         };
 
         // --- Local Storage Data ---
@@ -4989,12 +4994,12 @@
           points: 0,
           lastActive: Date.now(),
           inventory: {
-            titles: {}, // { id: count }
+            titles: {}, 
             weapons: {},
             armors: {}
           },
           equipped: {
-            title: null, // id
+            title: null, 
             weapon: null,
             armor: null
           }
@@ -5006,14 +5011,13 @@
             if (!raw) return DEFAULT_USER_DATA;
             const data = JSON.parse(raw);
             
-            // Check Expiration (40 minutes)
-            // If expired, clear storage strictly and return default
+            // 40分鐘過期檢查
             if (Date.now() - (data.lastActive || 0) > DATA_EXPIRATION_MS) {
               localStorage.removeItem(STORAGE_KEY);
               return DEFAULT_USER_DATA;
             }
             
-            return { ...DEFAULT_USER_DATA, ...data }; // Merge structure
+            return { ...DEFAULT_USER_DATA, ...data }; 
           } catch (e) {
             localStorage.removeItem(STORAGE_KEY);
             return DEFAULT_USER_DATA;
@@ -5028,7 +5032,6 @@
 
         // --- Components ---
 
-        // 1. Loading
         const LoadingView = () => (
           <div className="fixed inset-0 bg-neutral-900 flex items-center justify-center text-white z-50">
             <div className="animate-pulse flex flex-col items-center">
@@ -5038,11 +5041,10 @@
           </div>
         );
 
-        // 2. Gacha
         const GachaModal = ({ onClose, onComplete, userPoints }) => {
-          const [mode, setMode] = useState(null); // 'title', 'weapon', 'armor'
+          const [mode, setMode] = useState(null); 
           const [spinning, setSpinning] = useState(false);
-          const [results, setResults] = useState(null); // Changed from result to results (array)
+          const [results, setResults] = useState(null); 
 
           const spin = (count) => {
             const cost = count * 10;
@@ -5081,7 +5083,6 @@
                 <p className="text-neutral-400 text-sm mb-6">每次抽獎消耗 10 積分</p>
 
                 {!mode ? (
-                  // Mode Selection (Unchanged)
                   <div className="grid grid-cols-1 gap-3">
                     <button onClick={() => setMode('title')} className="bg-neutral-800 hover:bg-neutral-700 p-4 rounded-xl flex items-center justify-between text-white font-bold border border-neutral-700">
                       <span className="flex items-center gap-2"><Crown className="text-yellow-500"/> 稱號</span>
@@ -5097,7 +5098,6 @@
                     </button>
                   </div>
                 ) : !results ? (
-                  // Spin Buttons
                   <div className="flex flex-col items-center">
                     <div className={`w-32 h-32 rounded-full border-4 border-yellow-500 mb-6 flex items-center justify-center bg-neutral-800 ${spinning ? 'animate-spin' : ''}`}>
                        {mode === 'title' ? <Crown className="w-12 h-12 text-yellow-500"/> : mode === 'weapon' ? <Axe className="w-12 h-12 text-red-500"/> : <Shield className="w-12 h-12 text-blue-500"/>}
@@ -5118,7 +5118,6 @@
                     <button onClick={() => setMode(null)} disabled={spinning} className="mt-4 text-neutral-500 text-sm">返回</button>
                   </div>
                 ) : (
-                  // Results Display
                   <div className="animate-bounce-slow flex flex-col items-center">
                     <p className="text-neutral-400 text-sm mb-4">恭喜獲得</p>
                     
@@ -5140,9 +5139,8 @@
           );
         };
 
-        // 3. Inventory
         const InventoryModal = ({ userData, onEquip, onClose }) => {
-          const [tab, setTab] = useState('weapon'); // title, weapon, armor
+          const [tab, setTab] = useState('weapon'); 
 
           const getList = () => {
             if (tab === 'title') return { pool: TITLES_POOL, userInv: userData.inventory.titles, current: userData.equipped.title };
@@ -5151,7 +5149,7 @@
           };
 
           const { pool, userInv, current } = getList();
-          const ownedItems = pool.filter(item => userInv[item.id]).sort((a,b) => (b.prob - a.prob)); // Sort by rarity roughly
+          const ownedItems = pool.filter(item => userInv[item.id]).sort((a,b) => (b.prob - a.prob)); 
 
           return (
             <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4">
@@ -5186,7 +5184,6 @@
           );
         };
 
-        // 4. Leaderboard
         const LeaderboardModal = ({ onClose, userData }) => {
           const [leaders, setLeaders] = useState([]);
           const [loading, setLoading] = useState(true);
@@ -5233,7 +5230,7 @@
                 timestamp: Date.now()
               });
               alert("上傳成功！");
-              onClose(); // Close to refresh logic if needed, or just let user see
+              onClose(); 
             } catch (e) {
               alert("上傳失敗: " + e.message);
             }
@@ -5280,7 +5277,6 @@
           );
         };
 
-        // 5. Menu
         const MenuView = ({ userData, onStart, onGacha, onInv, onLeaderboard, onReset }) => {
           const myTitle = TITLES_POOL.find(t => t.id === userData.equipped.title);
           return (
@@ -5288,7 +5284,7 @@
                <div className="w-full max-w-md space-y-6">
                  <header className="text-center">
                     <h1 className="text-5xl font-black italic text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600 flex justify-center items-center gap-3">
-                      <Swords className="w-12 h-12 text-purple-500" /> 洛津國小自然大亂鬥
+                      <Swords className="w-12 h-12 text-purple-500" /> 洛津大亂鬥
                     </h1>
                  </header>
 
@@ -5333,7 +5329,6 @@
           );
         };
 
-        // 6. Game & Lobby (Simplified for brevity but functional)
         const LobbyView = ({ roomCode, players, isHost, onStart, onAddAI, onLeave }) => {
            const pList = Object.values(players);
            return (
@@ -5381,13 +5376,11 @@
 
            return (
               <div className="fixed inset-0 bg-neutral-950 text-white flex flex-col">
-                 {/* Opponents */}
                  <div className="flex-none p-4 bg-neutral-900/80 backdrop-blur border-b border-neutral-800 flex justify-center gap-2">
                     {opponents.map(op => (
                        <button key={op.uid} disabled={!targetMode || op.status === 'dead'} onClick={() => targetMode && onAttack(op.uid)}
                           className={`relative p-3 rounded-xl border transition-all w-24 md:w-32 flex flex-col items-center ${targetMode && op.status !== 'dead' ? 'border-red-500 bg-red-900/20 scale-105 shadow-[0_0_20px_rgba(220,38,38,0.5)] animate-pulse' : 'border-neutral-700 bg-black/40'} ${op.status === 'dead' ? 'opacity-30 grayscale' : ''}`}>
                           <div className="text-xs font-bold truncate w-full text-center mb-1">{op.name}</div>
-                          {/* HP Bar */}
                           <div className="w-full h-2 bg-neutral-800 rounded-full overflow-hidden mb-1">
                              <div className="h-full bg-red-600 hp-transition" style={{width: `${(op.hp / op.maxHp) * 100}%`}}></div>
                           </div>
@@ -5398,7 +5391,6 @@
                  </div>
                  {targetMode && <div className="text-center bg-red-900/80 text-white py-1 text-sm font-bold animate-pulse">請點擊上方對手進行攻擊！</div>}
 
-                 {/* Question */}
                  <div className="flex-1 flex flex-col justify-center p-6 overflow-y-auto max-w-4xl mx-auto w-full">
                     <div className="bg-neutral-800 rounded-3xl p-8 border border-neutral-700 shadow-2xl mb-6 text-center">
                        <h3 className="text-xl md:text-2xl font-bold leading-relaxed">{question?.q}</h3>
@@ -5418,7 +5410,6 @@
                     </div>
                  </div>
 
-                 {/* Me */}
                  <div className="flex-none p-4 bg-neutral-900 border-t border-neutral-800">
                     <div className="max-w-4xl mx-auto flex items-center gap-4">
                        <div className="w-12 h-12 bg-blue-900 rounded-full flex items-center justify-center border-2 border-blue-500 font-bold">我</div>
@@ -5438,7 +5429,6 @@
            );
         };
 
-        // --- Main App ---
         const App = () => {
            const [user, setUser] = useState(null);
            const [userData, setUserData] = useState(DEFAULT_USER_DATA);
@@ -5472,7 +5462,6 @@
               });
            }, []);
 
-           // Room Sync
            useEffect(() => {
               if (!roomCode || !user) return;
               const unsub = onSnapshot(getDocRef(ROOM_COLLECTION, roomCode), (snap) => {
@@ -5488,7 +5477,6 @@
               return () => unsub();
            }, [roomCode, user, view]);
 
-           // AI Logic
            useEffect(() => {
               if (view !== 'game' || !roomData || roomData.host !== user?.uid || roomData.status !== 'playing') {
                  if (aiInterval.current) { clearInterval(aiInterval.current); aiInterval.current = null; }
@@ -5513,8 +5501,7 @@
                        if (!aiState.current[ai.uid]) aiState.current[ai.uid] = now + 2000 + Math.random() * 3000;
                        
                        if (now >= aiState.current[ai.uid]) {
-                          // AI Action
-                          const willAttack = Math.random() < 0.5; // 50% chance to attack
+                          const willAttack = Math.random() < 0.5; 
                           if (willAttack) {
                              const targets = Object.values(players).filter(p => p.uid !== ai.uid && p.status === 'alive');
                              if (targets.length > 0) {
@@ -5522,11 +5509,13 @@
                                 const bots = targets.filter(p => p.isAI);
                                 let target = null;
                                 
-                                // 70% target human
-                                if (Math.random() < 0.7) {
-                                   target = humans.length > 0 ? humans[Math.floor(Math.random()*humans.length)] : bots[Math.floor(Math.random()*bots.length)];
+                                const preferHuman = Math.random() < 0.7;
+                                if (preferHuman) {
+                                   if(humans.length > 0) target = humans[Math.floor(Math.random()*humans.length)];
+                                   else if(bots.length > 0) target = bots[Math.floor(Math.random()*bots.length)];
                                 } else {
-                                   target = bots.length > 0 ? bots[Math.floor(Math.random()*bots.length)] : humans[Math.floor(Math.random()*humans.length)];
+                                   if(bots.length > 0) target = bots[Math.floor(Math.random()*bots.length)];
+                                   else if(humans.length > 0) target = humans[Math.floor(Math.random()*humans.length)];
                                 }
 
                                 if (target) {
@@ -5542,7 +5531,7 @@
                                 }
                              }
                           }
-                          aiState.current[ai.uid] = now + 10000 + Math.random() * 10000; // 10-20s cooldown
+                          aiState.current[ai.uid] = now + 10000 + Math.random() * 10000; 
                        }
                     });
 
@@ -5551,13 +5540,11 @@
               }
            }, [view, roomCode, user]);
 
-           // Death/Win Check
            useEffect(() => {
               if (view === 'game' && roomData?.status === 'playing') {
                  const me = roomData.players[user.uid];
                  const alive = Object.values(roomData.players).filter(p => p.status === 'alive');
                  
-                 // Death
                  if (me && me.status === 'dead') {
                     const rank = alive.length + 1;
                     const pts = [0, 10, 5, 3, 1][rank] || 1;
@@ -5567,17 +5554,14 @@
                     resetGame();
                  }
 
-                 // Host check win
                  if (roomData.host === user.uid && alive.length <= 1) {
                     if (alive.length === 1) {
-                       // Winner
                        updateDoc(getDocRef(ROOM_COLLECTION, roomCode), { status: 'finished' });
                     } else if (alive.length === 0) {
                        updateDoc(getDocRef(ROOM_COLLECTION, roomCode), { status: 'finished' });
                     }
                  }
               }
-              // I won
               if (view === 'game' && roomData?.status === 'finished') {
                  const me = roomData.players[user.uid];
                  if (me && me.status === 'alive') {
@@ -5589,7 +5573,6 @@
               }
            }, [roomData, view]);
 
-           // Handlers
            const resetGame = () => {
               setRoomCode('');
               setRoomData(null);
@@ -5601,57 +5584,75 @@
            };
 
            const handleStart = async (mode, inputCode) => {
-              // Calculate Stats
-              const myW = WEAPONS_POOL.find(w => w.id === userData.equipped.weapon);
-              const myA = ARMORS_POOL.find(a => a.id === userData.equipped.armor);
-              const myT = TITLES_POOL.find(t => t.id === userData.equipped.title);
-              
-              const atk = 10 + (myW?.atk || 0);
-              const maxHp = 100 + (myA?.hp || 0);
-              const name = myT ? `[${myT.name}] 玩家` : `玩家`;
+              try {
+                  if (mode === 'create') {
+                     const code = Math.floor(100000 + Math.random()*900000).toString();
+                     // Stats
+                     const myW = WEAPONS_POOL.find(w => w.id === userData.equipped.weapon);
+                     const myA = ARMORS_POOL.find(a => a.id === userData.equipped.armor);
+                     const myT = TITLES_POOL.find(t => t.id === userData.equipped.title);
+                     const atk = 10 + (myW?.atk || 0);
+                     const maxHp = 100 + (myA?.hp || 0);
+                     const name = myT ? `[${myT.name}] 玩家` : `玩家`;
 
-              const playerObj = {
-                 uid: user.uid,
-                 name: name,
-                 hp: maxHp,
-                 maxHp: maxHp,
-                 atk: atk,
-                 status: 'alive',
-                 isHost: mode === 'create',
-                 isAI: false
-              };
+                     await setDoc(getDocRef(ROOM_COLLECTION, code), {
+                        createdAt: Date.now(),
+                        host: user.uid,
+                        status: 'waiting',
+                        players: { [user.uid]: {
+                            uid: user.uid,
+                            name: name,
+                            hp: maxHp,
+                            maxHp: maxHp,
+                            atk: atk,
+                            status: 'alive',
+                            isHost: true,
+                            isAI: false
+                        }}
+                     });
+                     setRoomCode(code);
+                     setView('lobby');
+                  } else {
+                     if(!inputCode) return alert("請輸入代碼");
+                     const ref = getDocRef(ROOM_COLLECTION, inputCode);
+                     const snap = await getDoc(ref);
+                     if (!snap.exists()) return alert("找不到房間");
+                     const d = snap.data();
+                     if (d.status !== 'waiting') return alert("遊戲已開始");
+                     if (Object.keys(d.players).length >= 4) return alert("客滿");
+                     
+                     // Stats
+                     const myW = WEAPONS_POOL.find(w => w.id === userData.equipped.weapon);
+                     const myA = ARMORS_POOL.find(a => a.id === userData.equipped.armor);
+                     const myT = TITLES_POOL.find(t => t.id === userData.equipped.title);
+                     const atk = 10 + (myW?.atk || 0);
+                     const maxHp = 100 + (myA?.hp || 0);
+                     const name = myT ? `[${myT.name}] 玩家` : `玩家`;
 
-              if (mode === 'create') {
-                 const code = Math.floor(100000 + Math.random()*900000).toString();
-                 await setDoc(getDocRef(ROOM_COLLECTION, code), {
-                    createdAt: Date.now(),
-                    host: user.uid,
-                    status: 'waiting',
-                    players: { [user.uid]: playerObj }
-                 });
-                 setRoomCode(code);
-                 setView('lobby');
-              } else {
-                 if(!inputCode) return alert("請輸入代碼");
-                 const ref = getDocRef(ROOM_COLLECTION, inputCode);
-                 const snap = await getDoc(ref);
-                 if (!snap.exists()) return alert("找不到房間");
-                 const d = snap.data();
-                 if (d.status !== 'waiting') return alert("遊戲已開始");
-                 if (Object.keys(d.players).length >= 4) return alert("客滿");
-                 
-                 await updateDoc(ref, { [`players.${user.uid}`]: { ...playerObj, name: name + (Object.keys(d.players).length+1) } });
-                 setRoomCode(inputCode);
-                 setView('lobby');
+                     await updateDoc(ref, { [`players.${user.uid}`]: {
+                        uid: user.uid,
+                        name: name + (Object.keys(d.players).length+1),
+                        hp: maxHp,
+                        maxHp: maxHp,
+                        atk: atk,
+                        status: 'alive',
+                        isHost: false,
+                        isAI: false
+                     }});
+                     setRoomCode(inputCode);
+                     setView('lobby');
+                  }
+              } catch (e) {
+                  alert("無法建立或加入戰場: " + e.message);
               }
            };
 
            const handleAddAI = async () => {
+              if (!roomCode) return;
               const aiId = "AI_" + Date.now();
               const count = Object.keys(roomData.players).length;
               if (count >= 4) return;
               
-              // Random AI Stats (weak ~ strong)
               const aiHp = 100 + Math.floor(Math.random() * 30);
               const aiAtk = 10 + Math.floor(Math.random() * 10);
 
@@ -5696,17 +5697,13 @@
               }
            };
 
-           // Inventory Logic
            const handleGachaComplete = (mode, items) => {
-              // Ensure items is array
               const itemsArray = Array.isArray(items) ? items : [items];
-              
               const cost = itemsArray.length * 10;
               const newData = { ...userData, points: userData.points - cost };
               const category = mode === 'title' ? 'titles' : mode === 'weapon' ? 'weapons' : 'armors';
               
               itemsArray.forEach(item => {
-                  // Count Logic
                   const currentCount = newData.inventory[category][item.id] || 0;
                   newData.inventory[category][item.id] = currentCount + 1;
               });
@@ -5716,7 +5713,6 @@
 
            const handleEquip = (category, itemId) => {
               const newData = { ...userData };
-              // category: title, weapon, armor
               newData.equipped[category] = itemId;
               setUserData(saveUserData(newData));
            };
@@ -5741,4 +5737,3 @@
     </script>
 </body>
 </html>
-
