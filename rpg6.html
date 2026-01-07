@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>洛津大亂鬥 v2.4 (大廳增強版)</title>
+    <title>洛津大亂鬥 v2.5 (特效增強版)</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -44,6 +44,11 @@
       .glass-panel { background: rgba(23, 23, 23, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
       .glass-btn { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); transition: all 0.2s; }
       .glass-btn:active { transform: scale(0.98); }
+
+      /* Custom Glow Effects */
+      .glow-legendary { filter: drop-shadow(0 0 5px rgba(220, 38, 38, 0.8)); }
+      .glow-epic { filter: drop-shadow(0 0 3px rgba(234, 179, 8, 0.6)); }
+      .glow-rare { filter: drop-shadow(0 0 2px rgba(59, 130, 246, 0.5)); }
     </style>
 </head>
 <body>
@@ -76,7 +81,6 @@
         const DATA_EXPIRATION_MS = 40 * 60 * 1000;
         
         const ROOM_COLLECTION = 'battle_rooms';
-        // Leaderboard collection removed
         const STORAGE_KEY = 'battle_royal_rpg_v2';
         
         // --- 物品池 ---
@@ -149,7 +153,7 @@
           { id: "a20", name: "無 (裸奔)", hp: 0, color: "text-neutral-600", prob: 15 }
         ];
 
-        // 題庫 (無變動)
+        // 題庫
         const RAW_QUESTIONS = [
   {
     "q": "地球內部有高溫的岩漿，岩漿噴出地面後，冷卻形成岩石，岩石風化後會形成土壤。",
@@ -5398,6 +5402,15 @@
            const pList = Object.values(players);
            const getItem = (pool, id) => pool.find(i => i.id === id);
 
+           const getRarityStyle = (item) => {
+                if (!item) return "text-neutral-600";
+                let base = item.color;
+                if (item.prob <= 1) return `${base} glow-legendary animate-pulse font-black`;
+                if (item.prob <= 2) return `${base} glow-epic font-bold`;
+                if (item.prob <= 3) return `${base} glow-rare font-bold`;
+                return base;
+           };
+
            return (
              <div className="fixed inset-0 bg-neutral-950 text-white flex flex-col items-center justify-center p-6 bg-[url('https://images.unsplash.com/photo-1614728263952-84ea256f9679?q=80&w=2808&auto=format&fit=crop')] bg-cover bg-center">
                 <div className="absolute inset-0 bg-black/80 backdrop-blur-sm"></div>
@@ -5412,17 +5425,17 @@
                          const weapon = p?.equipment?.weapon ? getItem(WEAPONS_POOL, p.equipment.weapon) : null;
                          const armor = p?.equipment?.armor ? getItem(ARMORS_POOL, p.equipment.armor) : null;
 
-                         return <div key={i} className="min-h-[160px] border-2 border-dashed border-neutral-700 rounded-xl flex flex-col items-center p-2 bg-neutral-800/50 relative overflow-hidden">
+                         return <div key={i} className="min-h-[160px] border-2 border-dashed border-neutral-700 rounded-xl flex flex-col items-center p-2 bg-neutral-800/50 relative overflow-hidden transition hover:border-neutral-500">
                             {p ? (
                                <>
                                  <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-1 shadow-lg shrink-0 ${p.isAI ? 'bg-red-900 text-red-200' : 'bg-blue-900 text-blue-200'}`}>{p.isAI ? <Bot size={20}/> : <Users size={20}/>}</div>
                                  <div className="font-bold text-sm truncate w-full text-center mb-1">{p.name}</div>
                                  
-                                 {/* 裝備展示區 */}
-                                 <div className="flex-1 flex flex-col gap-0.5 w-full text-[10px] items-center justify-center bg-black/20 rounded p-1 mb-1">
-                                    {title ? <div className={`${title.color} font-bold truncate`}>{title.name}</div> : <div className="text-neutral-600">-</div>}
-                                    {weapon ? <div className={`${weapon.color} truncate`}>⚔️ {weapon.name}</div> : <div className="text-neutral-600">⚔️ -</div>}
-                                    {armor ? <div className={`${armor.color} truncate`}>🛡️ {armor.name}</div> : <div className="text-neutral-600">🛡️ -</div>}
+                                 {/* 裝備展示區 (含特效) */}
+                                 <div className="flex-1 flex flex-col gap-0.5 w-full text-[10px] items-center justify-center bg-black/40 rounded p-1 mb-1 border border-white/5">
+                                    {title ? <div className={`${getRarityStyle(title)} truncate w-full text-center`}>{title.name}</div> : <div className="text-neutral-600">-</div>}
+                                    {weapon ? <div className={`${getRarityStyle(weapon)} truncate w-full text-center`}>⚔️ {weapon.name}</div> : <div className="text-neutral-600">⚔️ -</div>}
+                                    {armor ? <div className={`${getRarityStyle(armor)} truncate w-full text-center`}>🛡️ {armor.name}</div> : <div className="text-neutral-600">🛡️ -</div>}
                                  </div>
 
                                  <div className="text-[10px] text-neutral-400 font-mono bg-black/40 px-2 py-0.5 rounded-full">HP {p.maxHp} / ATK {p.atk}</div>
@@ -5670,7 +5683,6 @@
                   const maxHp = 100 + (myA?.hp || 0);
                   const name = myT ? `[${myT.name}] 玩家` : `玩家`;
 
-                  // 準備玩家資料 (含裝備ID)
                   const equipment = {
                       title: userData.equipped.title || null,
                       weapon: userData.equipped.weapon || null,
@@ -5730,18 +5742,35 @@
               const aiId = "AI_" + Date.now();
               const count = Object.keys(roomData.players).length;
               if (count >= 4) return;
-              const aiHp = 100 + Math.floor(Math.random() * 30);
-              const aiAtk = 10 + Math.floor(Math.random() * 10);
+              
+              // AI 隨機裝備
+              const getRandomItem = (pool) => {
+                  const r = Math.random() * 100;
+                  let s = 0;
+                  for(let i of pool) {
+                      s += i.prob;
+                      if(r <= s) return i.id;
+                  }
+                  return pool[pool.length-1].id;
+              };
+
+              const aiHp = 100 + Math.floor(Math.random() * 50);
+              const aiAtk = 10 + Math.floor(Math.random() * 15);
+              
               await updateDoc(getDocRef(ROOM_COLLECTION, roomCode), {
                  [`players.${aiId}`]: {
                     uid: aiId,
-                    name: `AI戰士 ${count}`,
+                    name: `AI戰士 ${count+1}`,
                     hp: aiHp,
                     maxHp: aiHp,
                     atk: aiAtk,
                     status: 'alive',
                     isAI: true,
-                    equipment: { title: null, weapon: null, armor: null }
+                    equipment: { 
+                        title: getRandomItem(TITLES_POOL), 
+                        weapon: getRandomItem(WEAPONS_POOL), 
+                        armor: getRandomItem(ARMORS_POOL) 
+                    }
                  }
               });
            };
