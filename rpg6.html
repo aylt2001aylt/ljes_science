@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>洛津大亂鬥 v2.5 (特效增強版)</title>
+    <title>洛津大亂鬥 v2.6 (主頁特效版)</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -5349,6 +5349,18 @@
 
         const MenuView = ({ userData, onStart, onGacha, onInv, onTraining, onReset }) => {
           const myTitle = TITLES_POOL.find(t => t.id === userData.equipped.title);
+          const myWeapon = WEAPONS_POOL.find(w => w.id === userData.equipped.weapon);
+          const myArmor = ARMORS_POOL.find(a => a.id === userData.equipped.armor);
+
+          const getRarityStyle = (item) => {
+                if (!item) return "text-neutral-600";
+                let base = item.color;
+                if (item.prob <= 1) return `${base} glow-legendary animate-pulse font-black`;
+                if (item.prob <= 2) return `${base} glow-epic font-bold`;
+                if (item.prob <= 3) return `${base} glow-rare font-bold`;
+                return base;
+          };
+
           return (
             <div className="fixed inset-0 bg-neutral-950 text-white flex flex-col items-center justify-center p-6 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-neutral-800 to-neutral-950">
                <div className="w-full max-w-md space-y-6 animate-slide-up">
@@ -5363,9 +5375,25 @@
                        <div className="w-20 h-20 bg-neutral-800 rounded-full mb-3 flex items-center justify-center border-2 border-neutral-600 shadow-inner">
                           <Users className="w-10 h-10 text-neutral-400" />
                        </div>
-                       <div className={`text-2xl font-bold mb-1 ${myTitle ? myTitle.color : 'text-white'}`}>
+                       
+                       {/* 稱號顯示 */}
+                       <div className={`text-2xl font-bold mb-2 ${getRarityStyle(myTitle)}`}>
                           {myTitle ? myTitle.name : "無名小卒"}
                        </div>
+
+                       {/* 裝備顯示 */}
+                       <div className="flex gap-6 mb-4 text-sm bg-neutral-900/50 p-2 rounded-xl border border-white/5 w-full justify-center">
+                           <div className="flex flex-col items-center">
+                               <span className="text-[10px] text-neutral-500 mb-1 uppercase tracking-wider">WEAPON</span>
+                               <span className={`${getRarityStyle(myWeapon)} transition-all duration-300`}>{myWeapon ? myWeapon.name : "無"}</span>
+                           </div>
+                           <div className="w-px bg-neutral-700"></div>
+                           <div className="flex flex-col items-center">
+                               <span className="text-[10px] text-neutral-500 mb-1 uppercase tracking-wider">ARMOR</span>
+                               <span className={`${getRarityStyle(myArmor)} transition-all duration-300`}>{myArmor ? myArmor.name : "無"}</span>
+                           </div>
+                       </div>
+
                        <div className="flex items-center gap-2 text-yellow-500 bg-yellow-900/20 px-4 py-1 rounded-full border border-yellow-500/20 mb-6">
                           <Zap className="w-4 h-4 fill-yellow-500" />
                           <span className="font-mono font-bold text-lg">{userData.points}</span>
