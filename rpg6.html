@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>洛津國小大亂鬥</title>
+    <title>洛津大亂鬥 v2.9 (神話降臨版)</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -49,6 +49,21 @@
       .glow-legendary { filter: drop-shadow(0 0 8px rgba(220, 38, 38, 0.9)); }
       .glow-epic { filter: drop-shadow(0 0 5px rgba(234, 179, 8, 0.7)); }
       .glow-rare { filter: drop-shadow(0 0 3px rgba(59, 130, 246, 0.6)); }
+
+      /* Rainbow Effect for Mythical Items */
+      @keyframes rainbow-text {
+        0% { color: #ff0000; filter: drop-shadow(0 0 5px #ff0000); }
+        20% { color: #ffff00; filter: drop-shadow(0 0 5px #ffff00); }
+        40% { color: #00ff00; filter: drop-shadow(0 0 5px #00ff00); }
+        60% { color: #00ffff; filter: drop-shadow(0 0 5px #00ffff); }
+        80% { color: #0000ff; filter: drop-shadow(0 0 5px #0000ff); }
+        100% { color: #ff00ff; filter: drop-shadow(0 0 5px #ff00ff); }
+      }
+      .text-rainbow {
+        animation: rainbow-text 3s linear infinite;
+        font-weight: 900;
+        text-shadow: 0 0 10px rgba(255,255,255,0.5);
+      }
     </style>
 </head>
 <body>
@@ -84,32 +99,51 @@
         const ROOM_COLLECTION = 'battle_rooms';
         const STORAGE_KEY = 'battle_royal_rpg_v2';
         
-        // --- 物品池 (含視覺設定) ---
-        // icon: React Component to render
+        // --- 物品池 (含視覺設定與能力加成) ---
+        
         const TITLES_POOL = [
-          { id: "t01", name: "傳說中的英雄", color: "text-red-600", prob: 0.5, icon: CrownIcon },
-          { id: "t02", name: "神選之子", color: "text-red-500", prob: 0.5, icon: Star },
-          { id: "t03", name: "萬王之王", color: "text-orange-500", prob: 1, icon: CrownIcon },
-          { id: "t04", name: "世界最強霸主", color: "text-orange-400", prob: 1, icon: Trophy },
-          { id: "t05", name: "光之戰士", color: "text-yellow-500", prob: 2, icon: Sparkles },
-          { id: "t06", name: "闇夜殺手", color: "text-yellow-400", prob: 2, icon: Skull },
-          { id: "t07", name: "大魔法師", color: "text-yellow-300", prob: 2, icon: Wand2 },
-          { id: "t08", name: "菁英份子", color: "text-purple-500", prob: 3, icon: Medal },
-          { id: "t09", name: "資優生", color: "text-purple-400", prob: 3, icon: BookOpen },
-          { id: "t10", name: "學霸", color: "text-purple-300", prob: 3, icon: BookOpen },
-          { id: "t11", name: "老練的探險家", color: "text-blue-500", prob: 4, icon: Backpack },
-          { id: "t12", name: "熟練的劍鬥士", color: "text-blue-400", prob: 4, icon: Sword },
-          { id: "t13", name: "進擊的開拓者", color: "text-blue-300", prob: 4, icon: Anchor },
-          { id: "t14", name: "普通的市民", color: "text-green-500", prob: 5, icon: Users },
-          { id: "t15", name: "路過的旅人", color: "text-green-400", prob: 5, icon: Backpack },
-          { id: "t16", name: "剛到的新人", color: "text-green-300", prob: 5, icon: Sparkles },
-          { id: "t17", name: "菜鳥", color: "text-neutral-400", prob: 8, icon: Zap },
-          { id: "t18", name: "新手", color: "text-neutral-400", prob: 8, icon: Zap },
-          { id: "t19", name: "村民", color: "text-neutral-500", prob: 15, icon: Users },
-          { id: "t20", name: "路人", color: "text-neutral-600", prob: 24, icon: Users }
+          // 神話級 (0.01%) - 彩色
+          { id: "t00", name: "【全知全能】", color: "text-rainbow", prob: 0.01, icon: CrownIcon, atk: 10, hp: 25 },
+          
+          // 傳說級
+          { id: "t01", name: "傳說中的英雄", color: "text-red-600", prob: 0.5, icon: CrownIcon, atk: 8, hp: 15 },
+          { id: "t02", name: "神選之子", color: "text-red-500", prob: 0.5, icon: Star, atk: 7, hp: 12 },
+          
+          // 史詩級
+          { id: "t03", name: "萬王之王", color: "text-orange-500", prob: 1, icon: CrownIcon, atk: 6, hp: 10 },
+          { id: "t04", name: "世界最強霸主", color: "text-orange-400", prob: 1, icon: Trophy, atk: 5, hp: 10 },
+          
+          // 稀有級
+          { id: "t05", name: "光之戰士", color: "text-yellow-500", prob: 2, icon: Sparkles, atk: 4, hp: 8 },
+          { id: "t06", name: "闇夜殺手", color: "text-yellow-400", prob: 2, icon: Skull, atk: 5, hp: 5 },
+          { id: "t07", name: "大魔法師", color: "text-yellow-300", prob: 2, icon: Wand2, atk: 6, hp: 0 },
+          
+          // 高級
+          { id: "t08", name: "菁英份子", color: "text-purple-500", prob: 3, icon: Medal, atk: 3, hp: 5 },
+          { id: "t09", name: "資優生", color: "text-purple-400", prob: 3, icon: BookOpen, atk: 2, hp: 5 },
+          { id: "t10", name: "學霸", color: "text-purple-300", prob: 3, icon: BookOpen, atk: 2, hp: 5 },
+          
+          // 中級
+          { id: "t11", name: "老練的探險家", color: "text-blue-500", prob: 4, icon: Backpack, atk: 2, hp: 3 },
+          { id: "t12", name: "熟練的劍鬥士", color: "text-blue-400", prob: 4, icon: Sword, atk: 3, hp: 0 },
+          { id: "t13", name: "進擊的開拓者", color: "text-blue-300", prob: 4, icon: Anchor, atk: 1, hp: 5 },
+          
+          // 普通級
+          { id: "t14", name: "普通的市民", color: "text-green-500", prob: 5, icon: Users, hp: 5 },
+          { id: "t15", name: "路過的旅人", color: "text-green-400", prob: 5, icon: Backpack, hp: 5 },
+          { id: "t16", name: "剛到的新人", color: "text-green-300", prob: 5, icon: Sparkles, hp: 3 },
+          
+          // 新手級
+          { id: "t17", name: "菜鳥", color: "text-neutral-400", prob: 8, icon: Zap, hp: 2 },
+          { id: "t18", name: "新手", color: "text-neutral-400", prob: 8, icon: Zap, hp: 2 },
+          { id: "t19", name: "村民", color: "text-neutral-500", prob: 15, icon: Users, hp: 1 },
+          { id: "t20", name: "路人", color: "text-neutral-600", prob: 23.99, icon: Users }
         ];
 
         const WEAPONS_POOL = [
+          // 神話級 (0.01%)
+          { id: "w00", name: "【創世神兵】", atk: 50, color: "text-rainbow", prob: 0.01, icon: Swords },
+
           { id: "w01", name: "弒神之劍", atk: 20, color: "text-red-600", prob: 0.5, icon: Sword },
           { id: "w02", name: "魔王戰斧", atk: 19, color: "text-red-500", prob: 0.5, icon: Axe },
           { id: "w03", name: "聖光權杖", atk: 18, color: "text-orange-500", prob: 1, icon: Wand2 },
@@ -125,14 +159,17 @@
           { id: "w13", name: "流星錘", atk: 8, color: "text-blue-300", prob: 4, icon: Hammer },
           { id: "w14", name: "青銅劍", atk: 7, color: "text-green-500", prob: 5, icon: Sword },
           { id: "w15", name: "獵刀", atk: 6, color: "text-green-400", prob: 5, icon: Sword },
-          { id: "w16", name: "木棒", atk: 5, color: "text-green-300", prob: 5, icon: Trash2 }, // 暫代樹枝
+          { id: "w16", name: "木棒", atk: 5, color: "text-green-300", prob: 5, icon: Trash2 },
           { id: "w17", name: "生鏽的刀", atk: 4, color: "text-neutral-400", prob: 8, icon: Sword },
           { id: "w18", name: "石塊", atk: 3, color: "text-neutral-400", prob: 8, icon: Hexagon },
           { id: "w19", name: "樹枝", atk: 2, color: "text-neutral-500", prob: 15, icon: Trash2 },
-          { id: "w20", name: "拳頭", atk: 1, color: "text-neutral-600", prob: 24, icon: X }
+          { id: "w20", name: "拳頭", atk: 1, color: "text-neutral-600", prob: 23.99, icon: X }
         ];
 
         const ARMORS_POOL = [
+          // 神話級 (0.01%)
+          { id: "a00", name: "【絕對領域】", hp: 150, color: "text-rainbow", prob: 0.01, icon: Shield },
+
           { id: "a01", name: "神之鎧甲", hp: 50, color: "text-red-600", prob: 0.5, icon: Shield },
           { id: "a02", name: "龍鱗戰甲", hp: 48, color: "text-red-500", prob: 0.5, icon: Hexagon },
           { id: "a03", name: "鑽石胸甲", hp: 45, color: "text-orange-500", prob: 1, icon: Gem },
@@ -152,7 +189,7 @@
           { id: "a17", name: "布衣", hp: 8, color: "text-neutral-400", prob: 8, icon: Shirt },
           { id: "a18", name: "舊襯衫", hp: 5, color: "text-neutral-400", prob: 8, icon: Shirt },
           { id: "a19", name: "破布", hp: 3, color: "text-neutral-500", prob: 15, icon: Ghost },
-          { id: "a20", name: "無 (裸奔)", hp: 0, color: "text-neutral-600", prob: 24, icon: Ghost }
+          { id: "a20", name: "無 (裸奔)", hp: 0, color: "text-neutral-600", prob: 23.99, icon: Ghost }
         ];
 
         // 題庫 (無變動)
@@ -5254,7 +5291,7 @@
                   <div className="grid grid-cols-1 gap-3">
                     <button onClick={() => setMode('title')} className="glass-btn p-4 rounded-xl flex items-center justify-between text-white font-bold">
                       <span className="flex items-center gap-2"><Crown className="text-yellow-500"/> 稱號</span>
-                      <span className="text-xs bg-neutral-900 px-2 py-1 rounded">裝飾</span>
+                      <span className="text-xs bg-neutral-900 px-2 py-1 rounded">裝飾 (含能力)</span>
                     </button>
                     <button onClick={() => setMode('weapon')} className="glass-btn p-4 rounded-xl flex items-center justify-between text-white font-bold">
                       <span className="flex items-center gap-2"><Axe className="text-red-500"/> 武器</span>
@@ -5360,6 +5397,7 @@
           const getRarityStyle = (item) => {
                 if (!item) return "text-neutral-600";
                 let base = item.color;
+                if (item.color === 'text-rainbow') return `text-rainbow glow-legendary animate-pulse font-black`;
                 if (item.prob <= 1) return `${base} glow-legendary animate-pulse font-black`;
                 if (item.prob <= 2) return `${base} glow-epic font-bold`;
                 if (item.prob <= 3) return `${base} glow-rare font-bold`;
@@ -5371,7 +5409,7 @@
                <div className="w-full max-w-md space-y-6 animate-slide-up">
                  <header className="text-center">
                     <h1 className="text-5xl font-black italic text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600 flex justify-center items-center gap-3">
-                      <Swords className="w-12 h-12 text-purple-500" /> 洛津國小大亂鬥
+                      <Swords className="w-12 h-12 text-purple-500" /> 洛津大亂鬥
                     </h1>
                  </header>
 
@@ -5445,6 +5483,7 @@
            const getRarityStyle = (item) => {
                 if (!item) return "text-neutral-600";
                 let base = item.color;
+                if (item.color === 'text-rainbow') return `text-rainbow glow-legendary animate-pulse font-black`;
                 if (item.prob <= 1) return `${base} glow-legendary animate-pulse font-black`;
                 if (item.prob <= 2) return `${base} glow-epic font-bold`;
                 if (item.prob <= 3) return `${base} glow-rare font-bold`;
@@ -5470,7 +5509,7 @@
                                <>
                                  <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-1 shadow-lg shrink-0 ${p.isAI ? 'bg-red-900 text-red-200' : 'bg-blue-900 text-blue-200'}`}>{p.isAI ? <Bot size={24}/> : <Users size={24}/>}</div>
                                  <div className="font-bold text-sm truncate w-full text-center mb-1">{p.name}</div>
-                                 {title && <div className={`text-[10px] ${title.color} mb-2 flex items-center gap-1 justify-center bg-black/30 px-2 py-0.5 rounded-full`}><title.icon size={10} /> {title.name}</div>}
+                                 {title && <div className={`text-[10px] ${title.color === 'text-rainbow' ? 'text-rainbow' : title.color} mb-2 flex items-center gap-1 justify-center bg-black/30 px-2 py-0.5 rounded-full`}><title.icon size={10} /> {title.name}</div>}
                                  
                                  {/* 裝備展示區 (含特效) */}
                                  <div className="flex gap-1 w-full justify-center mb-2">
@@ -5542,7 +5581,7 @@
                         <QuestionCard 
                             question={question} 
                             onAnswer={onAnswer} 
-                            feedback={feedback}
+                            feedback={feedback} 
                             disabled={!!feedback}
                         />
                     )}
@@ -5725,8 +5764,12 @@
                   const myW = WEAPONS_POOL.find(w => w.id === userData.equipped.weapon);
                   const myA = ARMORS_POOL.find(a => a.id === userData.equipped.armor);
                   const myT = TITLES_POOL.find(t => t.id === userData.equipped.title);
-                  const atk = 10 + (myW?.atk || 0);
-                  const maxHp = 100 + (myA?.hp || 0);
+                  
+                  // 數值計算：基礎值 + 武器 + 稱號
+                  const atk = 10 + (myW?.atk || 0) + (myT?.atk || 0);
+                  // 數值計算：基礎值 + 防具 + 稱號
+                  const maxHp = 100 + (myA?.hp || 0) + (myT?.hp || 0);
+                  
                   const name = myT ? `[${myT.name}] 玩家` : `玩家`;
 
                   const equipment = {
@@ -5900,6 +5943,3 @@
     </script>
 </body>
 </html>
-
-
-
