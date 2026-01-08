@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>洛津大亂鬥 v2.9 (神話降臨版)</title>
+    <title>洛津大亂鬥 v3.0 (專屬圖示版)</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -80,7 +80,8 @@
           Flame, XCircle, Skull, Dices, Backpack, Eraser, 
           Shield, Axe, Upload, CheckCircle2, X, Trash2,
           Sword, Hammer, Wand2, Crosshair, Shirt, Gem, Ghost, 
-          Hexagon, Sparkles, Star, Medal, Crown as CrownIcon, Anchor
+          Hexagon, Sparkles, Star, Medal, Crown as CrownIcon, Anchor,
+          GraduationCap, Scroll, Map, User, AlertCircle
         } from 'lucide-react';
 
         // --- 設定與常數 ---
@@ -95,15 +96,98 @@
         };
 
         const DATA_EXPIRATION_MS = 40 * 60 * 1000;
-        
         const ROOM_COLLECTION = 'battle_rooms';
         const STORAGE_KEY = 'battle_royal_rpg_v2';
+
+        // --- Custom Icons (SVG) ---
+        // 這些是自定義的向量圖示，用於增強視覺獨特性
+
+        const IconOmniscience = ({ className }) => (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                <circle cx="12" cy="12" r="3" />
+                <path d="M12 5V3M12 21v-2M5 12H3M21 12h-2M17 17l1.4 1.4M5.6 5.6l1.4 1.4M17 7l1.4-1.4M5.6 18.4l1.4-1.4" />
+            </svg>
+        );
+
+        const IconGenesis = ({ className }) => (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                <path d="M14.5 17.5L3 6V3h3l11.5 11.5" />
+                <path d="M13 19l6-6" />
+                <path d="M16 16l4 4" />
+                <path d="M19 21l2-2" />
+                <circle cx="14" cy="10" r="2" />
+                <path d="M8 2L2 8" />
+            </svg>
+        );
+
+        const IconAbsolute = ({ className }) => (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                <path d="M12 8v4" />
+                <path d="M12 16h.01" />
+                <circle cx="12" cy="12" r="9" strokeOpacity="0.5"/>
+            </svg>
+        );
+
+        const IconSpear = ({ className }) => (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                <path d="M21 3L14.5 9.5" />
+                <path d="M11 13L3 21" />
+                <path d="M16 8l4-4-4 4z" />
+                <path d="M19 7l2-2" />
+                <path d="M17 5l2 2" />
+            </svg>
+        );
+
+        const IconDagger = ({ className }) => (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                <path d="M19 21l-5-5" />
+                <path d="M3 3l13 13" />
+                <path d="M9 7L7 9" />
+            </svg>
+        );
+
+        const IconStaff = ({ className }) => (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                <path d="M6 21l12-12" />
+                <circle cx="18" cy="6" r="3" />
+                <path d="M18 6l2-2" />
+                <path d="M15 9l-1 1" />
+            </svg>
+        );
+
+        const IconBow = ({ className }) => (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                <path d="M12 2c5.52 0 10 4.48 10 10s-4.48 10-10 10" />
+                <path d="M2 12h20" />
+                <path d="M22 12l-4-4" />
+                <path d="M22 12l-4 4" />
+            </svg>
+        );
+
+        const IconArmorHeavy = ({ className }) => (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                <path d="M4 4h16v16H4z" />
+                <path d="M4 9h16" />
+                <path d="M9 4v16" />
+                <path d="M15 4v16" />
+            </svg>
+        );
+
+        const IconRobe = ({ className }) => (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                <path d="M12 3L4 9v12h16V9l-8-6z" />
+                <path d="M12 3v18" />
+                <path d="M4 9h16" />
+            </svg>
+        );
         
         // --- 物品池 (含視覺設定與能力加成) ---
         
         const TITLES_POOL = [
           // 神話級 (0.01%) - 彩色
-          { id: "t00", name: "洛津國小學生", color: "text-rainbow", prob: 0.01, icon: CrownIcon, atk: 10, hp: 25 },
+          { id: "t00", name: "【洛津學生】", color: "text-rainbow", prob: 0.01, icon: IconOmniscience, atk: 10, hp: 25 },
           
           // 傳說級
           { id: "t01", name: "傳說中的英雄", color: "text-red-600", prob: 0.5, icon: CrownIcon, atk: 8, hp: 15 },
@@ -120,45 +204,45 @@
           
           // 高級
           { id: "t08", name: "菁英份子", color: "text-purple-500", prob: 3, icon: Medal, atk: 3, hp: 5 },
-          { id: "t09", name: "資優生", color: "text-purple-400", prob: 3, icon: BookOpen, atk: 2, hp: 5 },
+          { id: "t09", name: "資優生", color: "text-purple-400", prob: 3, icon: GraduationCap, atk: 2, hp: 5 },
           { id: "t10", name: "學霸", color: "text-purple-300", prob: 3, icon: BookOpen, atk: 2, hp: 5 },
           
           // 中級
-          { id: "t11", name: "老練的探險家", color: "text-blue-500", prob: 4, icon: Backpack, atk: 2, hp: 3 },
+          { id: "t11", name: "老練的探險家", color: "text-blue-500", prob: 4, icon: Map, atk: 2, hp: 3 },
           { id: "t12", name: "熟練的劍鬥士", color: "text-blue-400", prob: 4, icon: Sword, atk: 3, hp: 0 },
           { id: "t13", name: "進擊的開拓者", color: "text-blue-300", prob: 4, icon: Anchor, atk: 1, hp: 5 },
           
           // 普通級
-          { id: "t14", name: "普通的市民", color: "text-green-500", prob: 5, icon: Users, hp: 5 },
+          { id: "t14", name: "普通的市民", color: "text-green-500", prob: 5, icon: User, hp: 5 },
           { id: "t15", name: "路過的旅人", color: "text-green-400", prob: 5, icon: Backpack, hp: 5 },
           { id: "t16", name: "剛到的新人", color: "text-green-300", prob: 5, icon: Sparkles, hp: 3 },
           
           // 新手級
           { id: "t17", name: "菜鳥", color: "text-neutral-400", prob: 8, icon: Zap, hp: 2 },
-          { id: "t18", name: "新手", color: "text-neutral-400", prob: 8, icon: Zap, hp: 2 },
+          { id: "t18", name: "新手", color: "text-neutral-400", prob: 8, icon: AlertCircle, hp: 2 },
           { id: "t19", name: "村民", color: "text-neutral-500", prob: 15, icon: Users, hp: 1 },
           { id: "t20", name: "路人", color: "text-neutral-600", prob: 23.99, icon: Users }
         ];
 
         const WEAPONS_POOL = [
           // 神話級 (0.01%)
-          { id: "w00", name: "【洛津之劍】", atk: 50, color: "text-rainbow", prob: 0.01, icon: Swords },
+          { id: "w00", name: "【洛津神兵】", atk: 50, color: "text-rainbow", prob: 0.01, icon: IconGenesis },
 
           { id: "w01", name: "弒神之劍", atk: 20, color: "text-red-600", prob: 0.5, icon: Sword },
           { id: "w02", name: "魔王戰斧", atk: 19, color: "text-red-500", prob: 0.5, icon: Axe },
-          { id: "w03", name: "聖光權杖", atk: 18, color: "text-orange-500", prob: 1, icon: Wand2 },
-          { id: "w04", name: "龍牙匕首", atk: 17, color: "text-orange-400", prob: 1, icon: Sword },
-          { id: "w05", name: "雷霆之槍", atk: 16, color: "text-yellow-500", prob: 2, icon: Zap },
+          { id: "w03", name: "聖光權杖", atk: 18, color: "text-orange-500", prob: 1, icon: IconStaff },
+          { id: "w04", name: "龍牙匕首", atk: 17, color: "text-orange-400", prob: 1, icon: IconDagger },
+          { id: "w05", name: "雷霆之槍", atk: 16, color: "text-yellow-500", prob: 2, icon: IconSpear },
           { id: "w06", name: "白金大劍", atk: 15, color: "text-yellow-400", prob: 2, icon: Sword },
           { id: "w07", name: "黑曜石劍", atk: 14, color: "text-yellow-300", prob: 2, icon: Sword },
           { id: "w08", name: "騎士長劍", atk: 13, color: "text-purple-500", prob: 3, icon: Sword },
-          { id: "w09", name: "精靈長弓", atk: 12, color: "text-purple-400", prob: 3, icon: Crosshair },
+          { id: "w09", name: "精靈長弓", atk: 12, color: "text-purple-400", prob: 3, icon: IconBow },
           { id: "w10", name: "矮人戰錘", atk: 11, color: "text-purple-300", prob: 3, icon: Hammer },
           { id: "w11", name: "鋼製寬劍", atk: 10, color: "text-blue-500", prob: 4, icon: Sword },
-          { id: "w12", name: "鐵製長矛", atk: 9, color: "text-blue-400", prob: 4, icon: Swords },
+          { id: "w12", name: "鐵製長矛", atk: 9, color: "text-blue-400", prob: 4, icon: IconSpear },
           { id: "w13", name: "流星錘", atk: 8, color: "text-blue-300", prob: 4, icon: Hammer },
           { id: "w14", name: "青銅劍", atk: 7, color: "text-green-500", prob: 5, icon: Sword },
-          { id: "w15", name: "獵刀", atk: 6, color: "text-green-400", prob: 5, icon: Sword },
+          { id: "w15", name: "獵刀", atk: 6, color: "text-green-400", prob: 5, icon: IconDagger },
           { id: "w16", name: "木棒", atk: 5, color: "text-green-300", prob: 5, icon: Trash2 },
           { id: "w17", name: "生鏽的刀", atk: 4, color: "text-neutral-400", prob: 8, icon: Sword },
           { id: "w18", name: "石塊", atk: 3, color: "text-neutral-400", prob: 8, icon: Hexagon },
@@ -168,28 +252,28 @@
 
         const ARMORS_POOL = [
           // 神話級 (0.01%)
-          { id: "a00", name: "【洛津之盾】", hp: 150, color: "text-rainbow", prob: 0.01, icon: Shield },
+          { id: "a00", name: "【洛津領域】", hp: 150, color: "text-rainbow", prob: 0.01, icon: IconAbsolute },
 
-          { id: "a01", name: "神之鎧甲", hp: 50, color: "text-red-600", prob: 0.5, icon: Shield },
+          { id: "a01", name: "神之鎧甲", hp: 50, color: "text-red-600", prob: 0.5, icon: IconArmorHeavy },
           { id: "a02", name: "龍鱗戰甲", hp: 48, color: "text-red-500", prob: 0.5, icon: Hexagon },
           { id: "a03", name: "鑽石胸甲", hp: 45, color: "text-orange-500", prob: 1, icon: Gem },
           { id: "a04", name: "泰坦護盾", hp: 42, color: "text-orange-400", prob: 1, icon: Shield },
-          { id: "a05", name: "守護者之鎧", hp: 40, color: "text-yellow-500", prob: 2, icon: Shield },
-          { id: "a06", name: "黃金板甲", hp: 38, color: "text-yellow-400", prob: 2, icon: Shield },
+          { id: "a05", name: "守護者之鎧", hp: 40, color: "text-yellow-500", prob: 2, icon: IconArmorHeavy },
+          { id: "a06", name: "黃金板甲", hp: 38, color: "text-yellow-400", prob: 2, icon: IconArmorHeavy },
           { id: "a07", name: "秘銀鎖甲", hp: 35, color: "text-yellow-300", prob: 2, icon: Shirt },
-          { id: "a08", name: "皇家衛士甲", hp: 32, color: "text-purple-500", prob: 3, icon: Shield },
-          { id: "a09", name: "重型鋼甲", hp: 30, color: "text-purple-400", prob: 3, icon: Shield },
-          { id: "a10", name: "全身鎧甲", hp: 28, color: "text-purple-300", prob: 3, icon: Shirt },
+          { id: "a08", name: "皇家衛士甲", hp: 32, color: "text-purple-500", prob: 3, icon: IconArmorHeavy },
+          { id: "a09", name: "重型鋼甲", hp: 30, color: "text-purple-400", prob: 3, icon: IconArmorHeavy },
+          { id: "a10", name: "全身鎧甲", hp: 28, color: "text-purple-300", prob: 3, icon: IconArmorHeavy },
           { id: "a11", name: "鎖子甲", hp: 25, color: "text-blue-500", prob: 4, icon: Shirt },
-          { id: "a12", name: "鐵製胸甲", hp: 22, color: "text-blue-400", prob: 4, icon: Shield },
+          { id: "a12", name: "鐵製胸甲", hp: 22, color: "text-blue-400", prob: 4, icon: Shirt },
           { id: "a13", name: "鱗甲", hp: 20, color: "text-blue-300", prob: 4, icon: Hexagon },
           { id: "a14", name: "皮甲", hp: 15, color: "text-green-500", prob: 5, icon: Shirt },
           { id: "a15", name: "硬皮外套", hp: 12, color: "text-green-400", prob: 5, icon: Shirt },
-          { id: "a16", name: "旅行者長袍", hp: 10, color: "text-green-300", prob: 5, icon: Shirt },
+          { id: "a16", name: "旅行者長袍", hp: 10, color: "text-green-300", prob: 5, icon: IconRobe },
           { id: "a17", name: "布衣", hp: 8, color: "text-neutral-400", prob: 8, icon: Shirt },
           { id: "a18", name: "舊襯衫", hp: 5, color: "text-neutral-400", prob: 8, icon: Shirt },
           { id: "a19", name: "破布", hp: 3, color: "text-neutral-500", prob: 15, icon: Ghost },
-          { id: "a20", name: "垃圾袋", hp: 0, color: "text-neutral-600", prob: 23.99, icon: Ghost }
+          { id: "a20", name: "無 (裸奔)", hp: 0, color: "text-neutral-600", prob: 23.99, icon: Ghost }
         ];
 
         // 題庫 (無變動)
@@ -5943,5 +6027,3 @@
     </script>
 </body>
 </html>
-
-
