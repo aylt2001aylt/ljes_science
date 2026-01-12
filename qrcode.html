@@ -41,12 +41,27 @@
         #reader__dashboard_section_swaplink {
             display: none !important;
         }
+        
+        /* 自定義捲軸 */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #2d3748;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #4a5568;
+            border-radius: 3px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #718096;
+        }
     </style>
 </head>
-<body class="min-h-screen flex flex-col items-center justify-center p-4">
+<body class="min-h-screen flex flex-col items-center justify-center p-4 py-8">
 
     <!-- Main Container -->
-    <div class="w-full max-w-md bg-gray-800 rounded-xl shadow-2xl border border-gray-700 overflow-hidden">
+    <div class="w-full max-w-md bg-gray-800 rounded-xl shadow-2xl border border-gray-700 overflow-hidden mb-6">
         
         <!-- Header -->
         <div class="p-6 border-b border-gray-700 text-center">
@@ -144,8 +159,44 @@
         </div>
     </div>
 
+    <!-- History Log Section (New Feature) -->
+    <div class="w-full max-w-md bg-gray-800 rounded-xl shadow-xl border border-gray-700 overflow-hidden flex flex-col">
+        <div class="p-4 border-b border-gray-700 flex justify-between items-center bg-gray-900/50">
+            <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                測試紀錄
+            </h2>
+            <button onclick="clearHistory()" class="text-xs bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 px-2 py-1 rounded transition">
+                清除所有紀錄
+            </button>
+        </div>
+
+        <!-- Stats Grid -->
+        <div class="grid grid-cols-2 border-b border-gray-700">
+            <div class="p-4 bg-gray-800/80 border-r border-gray-700 text-center">
+                <span class="text-xs text-gray-400 block uppercase mb-1">累計次數</span>
+                <span id="total-scans" class="text-2xl font-bold text-white">0</span>
+            </div>
+            <div class="p-4 bg-gray-800/80 text-center">
+                <span class="text-xs text-gray-400 block uppercase mb-1">平均耗時</span>
+                <span id="average-time" class="text-2xl font-bold text-blue-400">0.00 ms</span>
+            </div>
+        </div>
+
+        <!-- List -->
+        <div class="max-h-64 overflow-y-auto custom-scrollbar p-0 bg-gray-800" id="history-container">
+            <div id="empty-history" class="py-8 text-center text-gray-500 text-sm">
+                尚未有測試數據
+            </div>
+            <!-- Dynamic List Items will go here -->
+            <ul id="history-list" class="hidden divide-y divide-gray-700"></ul>
+        </div>
+    </div>
+
     <!-- Instructions -->
-    <div class="mt-6 text-center max-w-md px-4">
+    <div class="mt-6 text-center max-w-md px-4 pb-4">
         <p class="text-gray-500 text-xs">
             注意：為了準確測量識別演算法與鏡頭對焦的速度，計時器將在<strong class="text-gray-300">相機完全啟動並顯示畫面後</strong>才開始計時。
         </p>
@@ -157,9 +208,11 @@
         let isScanning = false;
         let isPaused = false;
         
-        // Variables for handling pause time subtraction
         let pauseStartTime = 0;
         let totalPausedTime = 0;
+
+        // History Data
+        let scanHistory = [];
 
         // DOM Elements
         const primaryBtn = document.getElementById('primary-btn');
@@ -175,35 +228,94 @@
         const timerBadge = document.getElementById('timer-badge');
         const pausedOverlay = document.getElementById('paused-overlay');
 
-        // Main Action Handlers
+        // History DOM Elements
+        const totalScansEl = document.getElementById('total-scans');
+        const averageTimeEl = document.getElementById('average-time');
+        const historyListEl = document.getElementById('history-list');
+        const emptyHistoryEl = document.getElementById('empty-history');
+
+        // --- History Functions ---
+
+        function addToHistory(text, duration) {
+            scanHistory.unshift({ text, duration, timestamp: new Date() }); // Add to front
+            updateHistoryUI();
+        }
+
+        function clearHistory() {
+            scanHistory = [];
+            updateHistoryUI();
+        }
+
+        function updateHistoryUI() {
+            // Update counts
+            const total = scanHistory.length;
+            totalScansEl.textContent = total;
+
+            // Update average
+            if (total > 0) {
+                const sum = scanHistory.reduce((acc, curr) => acc + curr.duration, 0);
+                const avg = sum / total;
+                averageTimeEl.textContent = `${avg.toFixed(2)} ms`;
+            } else {
+                averageTimeEl.textContent = "0.00 ms";
+            }
+
+            // Update List
+            if (total === 0) {
+                emptyHistoryEl.classList.remove('hidden');
+                historyListEl.classList.add('hidden');
+            } else {
+                emptyHistoryEl.classList.add('hidden');
+                historyListEl.classList.remove('hidden');
+                
+                historyListEl.innerHTML = scanHistory.map((item, index) => {
+                    // Create pretty time string (HH:MM:SS)
+                    const timeStr = item.timestamp.toTimeString().split(' ')[0];
+                    // Truncate text if too long
+                    const shortText = item.text.length > 20 ? item.text.substring(0, 20) + '...' : item.text;
+                    const reverseIndex = total - index; // Show index 1, 2, 3...
+
+                    return `
+                        <li class="p-3 hover:bg-gray-700/50 transition flex items-center justify-between gap-3 animate-fade-in">
+                            <div class="flex items-center gap-3 overflow-hidden">
+                                <span class="bg-gray-700 text-gray-400 text-xs font-mono w-6 h-6 flex items-center justify-center rounded-full shrink-0">#${reverseIndex}</span>
+                                <div class="min-w-0">
+                                    <p class="text-white text-sm font-medium truncate" title="${item.text}">${shortText}</p>
+                                    <p class="text-gray-500 text-xs">${timeStr}</p>
+                                </div>
+                            </div>
+                            <div class="text-right shrink-0">
+                                <span class="block text-green-400 font-mono font-bold text-sm">${item.duration.toFixed(2)} ms</span>
+                            </div>
+                        </li>
+                    `;
+                }).join('');
+            }
+        }
+
+        // --- Original Scanner Logic (Preserved) ---
+
         function handlePrimaryAction() {
             if (!isScanning) {
-                // State: Idle -> Start
                 startScanning();
             } else if (!isPaused) {
-                // State: Scanning -> Pause
                 pauseScanning();
             } else {
-                // State: Paused -> Resume
                 resumeScanning();
             }
         }
 
         function handleSecondaryAction() {
             if (!isScanning) {
-                // State: Idle/Result -> Reset UI
                 resetUI();
             } else if (!isPaused) {
-                // State: Scanning -> Restart (Full restart)
                 restartScanning();
             } else {
-                // State: Paused -> Stop
                 stopScanning();
             }
         }
 
         async function startScanning() {
-            // UI Updates
             primaryBtn.disabled = true;
             primaryBtnText.textContent = '啟動中...';
             secondaryBtn.disabled = true;
@@ -212,12 +324,10 @@
             cameraPlaceholder.classList.add('hidden');
             loadingSpinner.classList.remove('hidden');
 
-            // Reset Time Variables
             totalPausedTime = 0;
             isPaused = false;
 
             try {
-                // Initialize Scanner if not exists
                 if (!html5QrcodeScanner) {
                     html5QrcodeScanner = new Html5Qrcode("reader");
                 }
@@ -227,10 +337,8 @@
                     qrbox: { width: 250, height: 250 },
                     aspectRatio: 1.0
                 };
-
                 const constraints = { facingMode: "environment" };
 
-                // Start Scanner
                 await html5QrcodeScanner.start(
                     constraints, 
                     config, 
@@ -240,7 +348,6 @@
                     loadingSpinner.classList.add('hidden');
                     timerBadge.classList.remove('hidden');
                     
-                    // START TIMING
                     scanStartTime = performance.now();
                     isScanning = true;
                     
@@ -256,12 +363,10 @@
 
         function pauseScanning() {
             if (!html5QrcodeScanner || !isScanning) return;
-            
             try {
-                html5QrcodeScanner.pause(true); // true = show paused video frame
+                html5QrcodeScanner.pause(true);
                 isPaused = true;
                 pauseStartTime = performance.now();
-                
                 pausedOverlay.classList.remove('hidden');
                 timerBadge.classList.add('hidden');
                 updateButtonsState('paused');
@@ -272,15 +377,11 @@
 
         function resumeScanning() {
             if (!html5QrcodeScanner || !isScanning) return;
-
             try {
                 html5QrcodeScanner.resume();
                 isPaused = false;
-                
-                // Calculate how long we were paused
                 const pausedDuration = performance.now() - pauseStartTime;
                 totalPausedTime += pausedDuration;
-
                 pausedOverlay.classList.add('hidden');
                 timerBadge.classList.remove('hidden');
                 updateButtonsState('scanning');
@@ -290,34 +391,26 @@
         }
 
         async function restartScanning() {
-            // Stop current scan but keep UI intent on restarting
             if (html5QrcodeScanner) {
                 try {
                     await html5QrcodeScanner.stop();
-                    // Don't clear logic here, just restart
-                } catch (e) {
-                    console.log("Error stopping for restart", e);
-                }
+                } catch (e) { console.log("Error stopping for restart", e); }
             }
-            
             isScanning = false;
-            // Immediate restart
             startScanning();
         }
 
         function onScanSuccess(decodedText, decodedResult) {
             if (!isScanning) return;
 
-            // END TIMING
             const scanEndTime = performance.now();
-            // Calculate duration excluding paused time
             const duration = scanEndTime - scanStartTime - totalPausedTime;
             
-            // Stop scanning
             stopScanning(false);
-
-            // Show results
             displayResult(decodedText, duration);
+            
+            // Add to History Logic
+            addToHistory(decodedText, duration);
         }
 
         function onScanFailure(error) {
@@ -327,7 +420,6 @@
         async function stopScanning(fullReset = true) {
             if (html5QrcodeScanner) {
                 try {
-                    // Check state before stopping
                     if (isScanning || isPaused) {
                         await html5QrcodeScanner.stop();
                         html5QrcodeScanner.clear();
@@ -352,13 +444,10 @@
         function updateButtonsState(state) {
             primaryBtn.disabled = false;
             secondaryBtn.disabled = false;
-            
-            // Remove all specific classes first
             primaryBtn.className = "flex-1 font-bold py-3 px-4 rounded-lg transition transform active:scale-95 shadow-lg flex justify-center items-center gap-2 text-white";
             secondaryBtn.className = "flex-1 font-bold py-3 px-4 rounded-lg transition transform active:scale-95 shadow-lg flex justify-center items-center gap-2 text-white";
 
             if (state === 'scanning') {
-                // Primary: Pause (Yellow), Secondary: Restart (Red)
                 primaryBtn.classList.add('bg-yellow-600', 'hover:bg-yellow-500');
                 primaryBtnText.textContent = '暫停';
                 primaryBtn.querySelector('svg').innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />';
@@ -368,7 +457,6 @@
                 secondaryBtn.querySelector('svg').innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />';
 
             } else if (state === 'paused') {
-                // Primary: Resume (Green), Secondary: Stop (Gray)
                 primaryBtn.classList.add('bg-green-600', 'hover:bg-green-500');
                 primaryBtnText.textContent = '繼續';
                 primaryBtn.querySelector('svg').innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />';
@@ -378,7 +466,6 @@
                 secondaryBtn.querySelector('svg').innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />';
 
             } else if (state === 'finished') {
-                // Primary: Scan Again (Blue), Secondary: Reset (Gray)
                 primaryBtn.classList.add('bg-blue-600', 'hover:bg-blue-500');
                 primaryBtnText.textContent = '再次掃描';
                 primaryBtn.querySelector('svg').innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />';
@@ -393,8 +480,6 @@
             resultPanel.classList.remove('hidden');
             contentDisplay.textContent = text;
             timeDisplay.textContent = `${ms.toFixed(2)} ms`;
-            
-            // Highlight the fact that it's done
             cameraPlaceholder.classList.remove('hidden');
             cameraPlaceholder.innerHTML = `<p class="text-green-500 font-bold">掃描完成</p>`;
         }
@@ -423,7 +508,6 @@
             secondaryBtnText.textContent = '重置';
         }
 
-        // Handle page visibility change
         document.addEventListener('visibilitychange', () => {
             if (document.hidden && isScanning && !isPaused) {
                 pauseScanning();
