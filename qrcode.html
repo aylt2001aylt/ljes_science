@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Code 掃描測速器</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- HTML5-QRCode Library -->
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #1a202c; /* Gray 900 */
+            color: #e2e8f0; /* Gray 200 */
+        }
+        
+        /* 掃描框動畫效果 */
+        .scan-region-highlight {
+            border-radius: 12px;
+            box-shadow: 0 0 0 1000px rgba(0, 0, 0, 0.5);
+            z-index: 10;
+        }
+
+        #reader {
+            width: 100%;
+            border-radius: 0.5rem;
+            overflow: hidden;
+            position: relative;
+        }
+
+        #reader video {
+            object-fit: cover;
+            border-radius: 0.5rem;
+        }
+
+        /* 隱藏 html5-qrcode 預設的一些醜醜的 UI */
+        #reader__dashboard_section_csr span, 
+        #reader__dashboard_section_swaplink {
+            display: none !important;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center p-4">
+
+    <!-- Main Container -->
+    <div class="w-full max-w-md bg-gray-800 rounded-xl shadow-2xl border border-gray-700 overflow-hidden">
+        
+        <!-- Header -->
+        <div class="p-6 border-b border-gray-700 text-center">
+            <h1 class="text-2xl font-bold text-white mb-2">QR Code 掃描測速</h1>
+            <p class="text-gray-400 text-sm">計算相機就緒到成功識別的毫秒數</p>
+        </div>
+
+        <!-- Camera Area -->
+        <div class="relative bg-black min-h-[300px] flex items-center justify-center group">
+            <div id="reader" class="w-full h-full"></div>
+            
+            <!-- Placeholder / Initial State -->
+            <div id="camera-placeholder" class="absolute inset-0 flex flex-col items-center justify-center text-gray-500">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mb-3 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                <p>點擊下方按鈕開始測試</p>
+            </div>
+
+            <!-- Loading Spinner -->
+            <div id="loading-spinner" class="hidden absolute inset-0 flex flex-col items-center justify-center bg-black/80 z-20">
+                <div class="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-500 mb-3"></div>
+                <p class="text-blue-400 text-sm animate-pulse">啟動相機中...</p>
+            </div>
+            
+            <!-- Timer Overlay (Running) -->
+            <div id="timer-badge" class="hidden absolute top-4 right-4 bg-red-600/90 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg z-20 animate-pulse">
+                偵測計時中...
+            </div>
+
+            <!-- Paused Overlay -->
+            <div id="paused-overlay" class="hidden absolute inset-0 flex items-center justify-center bg-black/60 z-30 backdrop-blur-sm">
+                <div class="bg-yellow-500/90 text-black px-4 py-2 rounded-full font-bold shadow-lg flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                    </svg>
+                    已暫停
+                </div>
+            </div>
+        </div>
+
+        <!-- Result Area (Hidden by default) -->
+        <div id="result-panel" class="hidden bg-gray-700/50 border-t border-gray-600 p-6 animate-fade-in-up">
+            <div class="flex items-start gap-4">
+                <div class="bg-green-500/20 p-3 rounded-full shrink-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                </div>
+                <div class="flex-1">
+                    <h3 class="text-green-400 font-bold text-lg mb-1">識別成功！</h3>
+                    
+                    <div class="grid grid-cols-2 gap-3 mt-3">
+                        <div class="bg-gray-800 p-3 rounded-lg border border-gray-600">
+                            <span class="text-xs text-gray-500 block uppercase">耗時</span>
+                            <span class="text-xl font-mono font-bold text-white" id="time-display">0 ms</span>
+                        </div>
+                        <div class="bg-gray-800 p-3 rounded-lg border border-gray-600">
+                            <span class="text-xs text-gray-500 block uppercase">精確度</span>
+                            <span class="text-sm font-medium text-white">高 (Performance API)</span>
+                        </div>
+                    </div>
+
+                    <div class="mt-3">
+                        <span class="text-xs text-gray-500 block uppercase mb-1">內容</span>
+                        <p class="text-white bg-black/30 p-2 rounded text-sm break-all font-mono" id="content-display">--</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="p-6 bg-gray-800 border-t border-gray-700 flex gap-3">
+            <!-- Left Button: Start / Pause / Resume -->
+            <button id="primary-btn" onclick="handlePrimaryAction()" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-4 rounded-lg transition transform active:scale-95 shadow-lg flex justify-center items-center gap-2">
+                <span id="primary-btn-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </span>
+                <span id="primary-btn-text">開始掃描</span>
+            </button>
+            
+            <!-- Right Button: Reset / Restart / Stop -->
+            <button id="secondary-btn" onclick="handleSecondaryAction()" disabled class="flex-1 bg-gray-700 hover:bg-gray-600 text-gray-300 font-bold py-3 px-4 rounded-lg transition transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2">
+                <span id="secondary-btn-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                </span>
+                <span id="secondary-btn-text">重置</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Instructions -->
+    <div class="mt-6 text-center max-w-md px-4">
+        <p class="text-gray-500 text-xs">
+            注意：為了準確測量識別演算法與鏡頭對焦的速度，計時器將在<strong class="text-gray-300">相機完全啟動並顯示畫面後</strong>才開始計時。
+        </p>
+    </div>
+
+    <script>
+        let html5QrcodeScanner = null;
+        let scanStartTime = 0;
+        let isScanning = false;
+        let isPaused = false;
+        
+        // Variables for handling pause time subtraction
+        let pauseStartTime = 0;
+        let totalPausedTime = 0;
+
+        // DOM Elements
+        const primaryBtn = document.getElementById('primary-btn');
+        const secondaryBtn = document.getElementById('secondary-btn');
+        const primaryBtnText = document.getElementById('primary-btn-text');
+        const secondaryBtnText = document.getElementById('secondary-btn-text');
+        
+        const resultPanel = document.getElementById('result-panel');
+        const timeDisplay = document.getElementById('time-display');
+        const contentDisplay = document.getElementById('content-display');
+        const cameraPlaceholder = document.getElementById('camera-placeholder');
+        const loadingSpinner = document.getElementById('loading-spinner');
+        const timerBadge = document.getElementById('timer-badge');
+        const pausedOverlay = document.getElementById('paused-overlay');
+
+        // Main Action Handlers
+        function handlePrimaryAction() {
+            if (!isScanning) {
+                // State: Idle -> Start
+                startScanning();
+            } else if (!isPaused) {
+                // State: Scanning -> Pause
+                pauseScanning();
+            } else {
+                // State: Paused -> Resume
+                resumeScanning();
+            }
+        }
+
+        function handleSecondaryAction() {
+            if (!isScanning) {
+                // State: Idle/Result -> Reset UI
+                resetUI();
+            } else if (!isPaused) {
+                // State: Scanning -> Restart (Full restart)
+                restartScanning();
+            } else {
+                // State: Paused -> Stop
+                stopScanning();
+            }
+        }
+
+        async function startScanning() {
+            // UI Updates
+            primaryBtn.disabled = true;
+            primaryBtnText.textContent = '啟動中...';
+            secondaryBtn.disabled = true;
+            
+            resultPanel.classList.add('hidden');
+            cameraPlaceholder.classList.add('hidden');
+            loadingSpinner.classList.remove('hidden');
+
+            // Reset Time Variables
+            totalPausedTime = 0;
+            isPaused = false;
+
+            try {
+                // Initialize Scanner if not exists
+                if (!html5QrcodeScanner) {
+                    html5QrcodeScanner = new Html5Qrcode("reader");
+                }
+
+                const config = { 
+                    fps: 30, 
+                    qrbox: { width: 250, height: 250 },
+                    aspectRatio: 1.0
+                };
+
+                const constraints = { facingMode: "environment" };
+
+                // Start Scanner
+                await html5QrcodeScanner.start(
+                    constraints, 
+                    config, 
+                    onScanSuccess, 
+                    onScanFailure
+                ).then(() => {
+                    loadingSpinner.classList.add('hidden');
+                    timerBadge.classList.remove('hidden');
+                    
+                    // START TIMING
+                    scanStartTime = performance.now();
+                    isScanning = true;
+                    
+                    updateButtonsState('scanning');
+                });
+
+            } catch (err) {
+                console.error("Error starting scanner", err);
+                alert("無法啟動相機，請檢查權限或設備支援。");
+                resetUI();
+            }
+        }
+
+        function pauseScanning() {
+            if (!html5QrcodeScanner || !isScanning) return;
+            
+            try {
+                html5QrcodeScanner.pause(true); // true = show paused video frame
+                isPaused = true;
+                pauseStartTime = performance.now();
+                
+                pausedOverlay.classList.remove('hidden');
+                timerBadge.classList.add('hidden');
+                updateButtonsState('paused');
+            } catch (e) {
+                console.error("Pause failed", e);
+            }
+        }
+
+        function resumeScanning() {
+            if (!html5QrcodeScanner || !isScanning) return;
+
+            try {
+                html5QrcodeScanner.resume();
+                isPaused = false;
+                
+                // Calculate how long we were paused
+                const pausedDuration = performance.now() - pauseStartTime;
+                totalPausedTime += pausedDuration;
+
+                pausedOverlay.classList.add('hidden');
+                timerBadge.classList.remove('hidden');
+                updateButtonsState('scanning');
+            } catch (e) {
+                console.error("Resume failed", e);
+            }
+        }
+
+        async function restartScanning() {
+            // Stop current scan but keep UI intent on restarting
+            if (html5QrcodeScanner) {
+                try {
+                    await html5QrcodeScanner.stop();
+                    // Don't clear logic here, just restart
+                } catch (e) {
+                    console.log("Error stopping for restart", e);
+                }
+            }
+            
+            isScanning = false;
+            // Immediate restart
+            startScanning();
+        }
+
+        function onScanSuccess(decodedText, decodedResult) {
+            if (!isScanning) return;
+
+            // END TIMING
+            const scanEndTime = performance.now();
+            // Calculate duration excluding paused time
+            const duration = scanEndTime - scanStartTime - totalPausedTime;
+            
+            // Stop scanning
+            stopScanning(false);
+
+            // Show results
+            displayResult(decodedText, duration);
+        }
+
+        function onScanFailure(error) {
+            // Standard failure
+        }
+
+        async function stopScanning(fullReset = true) {
+            if (html5QrcodeScanner) {
+                try {
+                    // Check state before stopping
+                    if (isScanning || isPaused) {
+                        await html5QrcodeScanner.stop();
+                        html5QrcodeScanner.clear();
+                    }
+                } catch (err) {
+                    console.log("Stop failed or already stopped", err);
+                }
+            }
+            
+            isScanning = false;
+            isPaused = false;
+            timerBadge.classList.add('hidden');
+            pausedOverlay.classList.add('hidden');
+            
+            if (fullReset) {
+                resetUI();
+            } else {
+                updateButtonsState('finished');
+            }
+        }
+
+        function updateButtonsState(state) {
+            primaryBtn.disabled = false;
+            secondaryBtn.disabled = false;
+            
+            // Remove all specific classes first
+            primaryBtn.className = "flex-1 font-bold py-3 px-4 rounded-lg transition transform active:scale-95 shadow-lg flex justify-center items-center gap-2 text-white";
+            secondaryBtn.className = "flex-1 font-bold py-3 px-4 rounded-lg transition transform active:scale-95 shadow-lg flex justify-center items-center gap-2 text-white";
+
+            if (state === 'scanning') {
+                // Primary: Pause (Yellow), Secondary: Restart (Red)
+                primaryBtn.classList.add('bg-yellow-600', 'hover:bg-yellow-500');
+                primaryBtnText.textContent = '暫停';
+                primaryBtn.querySelector('svg').innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />';
+                
+                secondaryBtn.classList.add('bg-red-600', 'hover:bg-red-500');
+                secondaryBtnText.textContent = '重新開始';
+                secondaryBtn.querySelector('svg').innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />';
+
+            } else if (state === 'paused') {
+                // Primary: Resume (Green), Secondary: Stop (Gray)
+                primaryBtn.classList.add('bg-green-600', 'hover:bg-green-500');
+                primaryBtnText.textContent = '繼續';
+                primaryBtn.querySelector('svg').innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />';
+                
+                secondaryBtn.classList.add('bg-gray-600', 'hover:bg-gray-500');
+                secondaryBtnText.textContent = '停止';
+                secondaryBtn.querySelector('svg').innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />';
+
+            } else if (state === 'finished') {
+                // Primary: Scan Again (Blue), Secondary: Reset (Gray)
+                primaryBtn.classList.add('bg-blue-600', 'hover:bg-blue-500');
+                primaryBtnText.textContent = '再次掃描';
+                primaryBtn.querySelector('svg').innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />';
+                
+                secondaryBtn.classList.add('bg-gray-700', 'hover:bg-gray-600', 'text-gray-300');
+                secondaryBtnText.textContent = '重置';
+                secondaryBtn.querySelector('svg').innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />';
+            }
+        }
+
+        function displayResult(text, ms) {
+            resultPanel.classList.remove('hidden');
+            contentDisplay.textContent = text;
+            timeDisplay.textContent = `${ms.toFixed(2)} ms`;
+            
+            // Highlight the fact that it's done
+            cameraPlaceholder.classList.remove('hidden');
+            cameraPlaceholder.innerHTML = `<p class="text-green-500 font-bold">掃描完成</p>`;
+        }
+
+        function resetUI() {
+            cameraPlaceholder.classList.remove('hidden');
+            cameraPlaceholder.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mb-3 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                <p>點擊下方按鈕開始測試</p>
+            `;
+            loadingSpinner.classList.add('hidden');
+            timerBadge.classList.add('hidden');
+            pausedOverlay.classList.add('hidden');
+            resultPanel.classList.add('hidden');
+            
+            primaryBtn.disabled = false;
+            primaryBtn.className = "flex-1 bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-4 rounded-lg transition transform active:scale-95 shadow-lg flex justify-center items-center gap-2";
+            primaryBtnText.textContent = '開始掃描';
+            primaryBtn.querySelector('svg').innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />';
+            
+            secondaryBtn.disabled = true;
+            secondaryBtn.className = "flex-1 bg-gray-700 hover:bg-gray-600 text-gray-300 font-bold py-3 px-4 rounded-lg transition transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2";
+            secondaryBtnText.textContent = '重置';
+        }
+
+        // Handle page visibility change
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden && isScanning && !isPaused) {
+                pauseScanning();
+            }
+        });
+
+    </script>
+</body>
+</html>
