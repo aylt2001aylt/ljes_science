@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>洛津大亂鬥 v3.0 (專屬圖示版)</title>
+    <title>洛津大亂鬥 v3.2 (種族覺醒版)</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -81,7 +81,8 @@
           Shield, Axe, Upload, CheckCircle2, X, Trash2,
           Sword, Hammer, Wand2, Crosshair, Shirt, Gem, Ghost, 
           Hexagon, Sparkles, Star, Medal, Crown as CrownIcon, Anchor,
-          GraduationCap, Scroll, Map, User, AlertCircle
+          GraduationCap, Scroll, Map, User, AlertCircle,
+          Leaf, Droplet, PawPrint, Dna, Cloud
         } from 'lucide-react';
 
         // --- 設定與常數 ---
@@ -100,8 +101,6 @@
         const STORAGE_KEY = 'battle_royal_rpg_v2';
 
         // --- Custom Icons (SVG) ---
-        // 修正：現在自定義圖示會接收 size 屬性，確保能正確顯示大小
-
         const IconOmniscience = ({ size = 24, className }) => (
             <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
                 <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
@@ -127,6 +126,15 @@
                 <path d="M12 8v4" />
                 <path d="M12 16h.01" />
                 <circle cx="12" cy="12" r="9" strokeOpacity="0.5"/>
+            </svg>
+        );
+
+        const IconVoid = ({ size = 24, className }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                <circle cx="12" cy="12" r="10" />
+                <path d="M12 2a15 15 0 0 0 .5 20" />
+                <path d="M2 12h20" />
+                <path d="M12 22a15 15 0 0 1-.5-20" />
             </svg>
         );
 
@@ -185,6 +193,57 @@
         
         // --- 物品池 (含視覺設定與能力加成) ---
         
+        const RACES_POOL = [
+          // 神話級 (0.01%) - 彩色
+          { id: "r00", name: "【虛空主宰】", color: "text-rainbow", prob: 0.01, icon: IconVoid, atk: 20, hp: 40 },
+          
+          // 傳說級 (0.5%)
+          { id: "r01", name: "龍族", color: "text-red-600", prob: 0.5, icon: Flame, atk: 15, hp: 30 },
+          { id: "r02", name: "泰坦", color: "text-red-500", prob: 0.5, icon: Hammer, atk: 12, hp: 35 },
+          
+          // 史詩級 (1%)
+          { id: "r03", name: "天使", color: "text-orange-500", prob: 1, icon: Cloud, atk: 10, hp: 20 },
+          { id: "r04", name: "惡魔", color: "text-orange-400", prob: 1, icon: Skull, atk: 12, hp: 15 },
+          
+          // 稀有級 (2%)
+          { id: "r05", name: "吸血鬼", color: "text-yellow-500", prob: 2, icon: Droplet, atk: 8, hp: 15 },
+          { id: "r06", name: "狼人", color: "text-yellow-400", prob: 2, icon: PawPrint, atk: 10, hp: 10 },
+          { id: "r07", name: "機械生命", color: "text-yellow-300", prob: 2, icon: Bot, atk: 5, hp: 25 },
+          
+          // 高級 (3%)
+          { id: "r08", name: "高等精靈", color: "text-purple-500", prob: 3, icon: Leaf, atk: 8, hp: 10 },
+          { id: "r09", name: "矮人", color: "text-purple-400", prob: 3, icon: Hammer, atk: 6, hp: 15 },
+          { id: "r10", name: "暗夜精靈", color: "text-purple-300", prob: 3, icon: Ghost, atk: 9, hp: 8 },
+          
+          // 中級 (4%)
+          { id: "r11", name: "獸人", color: "text-blue-500", prob: 4, icon: Axe, atk: 7, hp: 10 },
+          { id: "r12", name: "半身人", color: "text-blue-400", prob: 4, icon: FootprintsIcon, atk: 4, hp: 10 },
+          { id: "r13", name: "蜥蜴人", color: "text-blue-300", prob: 4, icon: Hexagon, atk: 5, hp: 12 },
+          
+          // 普通級 (5%)
+          { id: "r14", name: "貓人", color: "text-green-500", prob: 5, icon: PawPrint, atk: 3, hp: 8 },
+          { id: "r15", name: "哥布林", color: "text-green-400", prob: 5, icon: Trash2, atk: 4, hp: 6 },
+          { id: "r16", name: "史萊姆", color: "text-green-300", prob: 5, icon: Droplet, atk: 2, hp: 15 },
+          
+          // 新手級 (8%)
+          { id: "r17", name: "骷髏", color: "text-neutral-400", prob: 8, icon: Skull, atk: 3, hp: 5 },
+          { id: "r18", name: "殭屍", color: "text-neutral-400", prob: 8, icon: Ghost, atk: 2, hp: 8 },
+          
+          // 基礎級 (24%/15%)
+          { id: "r19", name: "普通人類", color: "text-neutral-500", prob: 15, icon: User, atk: 2, hp: 5 },
+          { id: "r20", name: "原始人", color: "text-neutral-600", prob: 23.99, icon: User, atk: 3, hp: 3 }
+        ];
+
+        // Helper for icons used above
+        function FootprintsIcon({size=24, className}) {
+             return (
+                <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                  <path d="M4 16v-2.38C4 11.5 2.97 10.5 3 8c.03-2.72 1.49-6 4.5-6C9.37 2 11 3.8 11 8c0 1.25-.76 2.5-2 2.5H8a1 1 0 0 1-1-1v-1" />
+                  <path d="M16 22v-2.38c0-2.12 1.03-3.12 1-5.62-.03-2.72-1.49-6-4.5-6C10.63 8 9 9.8 9 14c0 1.25.76 2.5 2 2.5h1a1 1 0 0 1 1 1v1" />
+                </svg>
+             );
+        }
+
         const TITLES_POOL = [
           // 神話級 (0.01%) - 彩色
           { id: "t00", name: "【洛津學生】", color: "text-rainbow", prob: 0.01, icon: IconOmniscience, atk: 10, hp: 25 },
@@ -200,7 +259,7 @@
           // 稀有級
           { id: "t05", name: "光之戰士", color: "text-yellow-500", prob: 2, icon: Sparkles, atk: 4, hp: 8 },
           { id: "t06", name: "闇夜殺手", color: "text-yellow-400", prob: 2, icon: Skull, atk: 5, hp: 5 },
-          { id: "t07", name: "大魔法師", color: "text-yellow-300", prob: 2, icon: Wand2, atk: 6, hp: 1 },
+          { id: "t07", name: "大魔法師", color: "text-yellow-300", prob: 2, icon: Wand2, atk: 6, hp: 0 },
           
           // 高級
           { id: "t08", name: "菁英份子", color: "text-purple-500", prob: 3, icon: Medal, atk: 3, hp: 5 },
@@ -209,7 +268,7 @@
           
           // 中級
           { id: "t11", name: "老練的探險家", color: "text-blue-500", prob: 4, icon: Map, atk: 2, hp: 3 },
-          { id: "t12", name: "熟練的劍鬥士", color: "text-blue-400", prob: 4, icon: Sword, atk: 3, hp: 1 },
+          { id: "t12", name: "熟練的劍鬥士", color: "text-blue-400", prob: 4, icon: Sword, atk: 3, hp: 0 },
           { id: "t13", name: "進擊的開拓者", color: "text-blue-300", prob: 4, icon: Anchor, atk: 1, hp: 5 },
           
           // 普通級
@@ -221,7 +280,7 @@
           { id: "t17", name: "菜鳥", color: "text-neutral-400", prob: 8, icon: Zap, hp: 2 },
           { id: "t18", name: "新手", color: "text-neutral-400", prob: 8, icon: AlertCircle, hp: 2 },
           { id: "t19", name: "村民", color: "text-neutral-500", prob: 15, icon: Users, hp: 1 },
-          { id: "t20", name: "路人", color: "text-neutral-600", prob: 23.99, icon: Users }
+          { id: "t20", name: "路人", color: "text-neutral-600", prob: 24, icon: Users }
         ];
 
         const WEAPONS_POOL = [
@@ -3908,8 +3967,8 @@
         const DEFAULT_USER_DATA = {
           points: 0,
           lastActive: Date.now(),
-          inventory: { titles: {}, weapons: {}, armors: {} },
-          equipped: { title: null, weapon: null, armor: null }
+          inventory: { titles: {}, weapons: {}, armors: {}, races: {} },
+          equipped: { title: null, weapon: null, armor: null, race: null }
         };
 
         const loadUserData = () => {
@@ -3922,6 +3981,9 @@
               localStorage.removeItem(STORAGE_KEY);
               return DEFAULT_USER_DATA;
             }
+            // Ensure races inventory exists for old data
+            if (!data.inventory.races) data.inventory.races = {};
+            if (!data.equipped.race) data.equipped.race = null;
             return { ...DEFAULT_USER_DATA, ...data }; 
           } catch (e) {
             localStorage.removeItem(STORAGE_KEY);
@@ -4123,7 +4185,12 @@
             const cost = count * 10;
             if (userPoints < cost) return;
             setSpinning(true);
-            let pool = mode === 'title' ? TITLES_POOL : mode === 'weapon' ? WEAPONS_POOL : ARMORS_POOL;
+            let pool;
+            if (mode === 'title') pool = TITLES_POOL;
+            else if (mode === 'weapon') pool = WEAPONS_POOL;
+            else if (mode === 'armor') pool = ARMORS_POOL;
+            else if (mode === 'race') pool = RACES_POOL;
+
             const newResults = [];
             for(let i=0; i<count; i++) {
                 const rand = Math.random() * 100;
@@ -4153,6 +4220,10 @@
                 <p className="text-neutral-400 text-sm mb-6">每次抽獎消耗 10 積分</p>
                 {!mode ? (
                   <div className="grid grid-cols-1 gap-3">
+                    <button onClick={() => setMode('race')} className="glass-btn p-4 rounded-xl flex items-center justify-between text-white font-bold">
+                      <span className="flex items-center gap-2"><Dna className="text-purple-500"/> 種族</span>
+                      <span className="text-xs bg-neutral-900 px-2 py-1 rounded">改變血統</span>
+                    </button>
                     <button onClick={() => setMode('title')} className="glass-btn p-4 rounded-xl flex items-center justify-between text-white font-bold">
                       <span className="flex items-center gap-2"><Crown className="text-yellow-500"/> 稱號</span>
                       <span className="text-xs bg-neutral-900 px-2 py-1 rounded">裝飾 (含能力)</span>
@@ -4169,7 +4240,10 @@
                 ) : !results ? (
                   <div className="flex flex-col items-center">
                     <div className={`w-32 h-32 rounded-full border-4 border-yellow-500 mb-6 flex items-center justify-center bg-neutral-800 ${spinning ? 'animate-spin' : ''}`}>
-                       {mode === 'title' ? <Crown className="w-12 h-12 text-yellow-500"/> : mode === 'weapon' ? <Axe className="w-12 h-12 text-red-500"/> : <Shield className="w-12 h-12 text-blue-500"/>}
+                       {mode === 'title' ? <Crown className="w-12 h-12 text-yellow-500"/> : 
+                        mode === 'weapon' ? <Axe className="w-12 h-12 text-red-500"/> : 
+                        mode === 'race' ? <Dna className="w-12 h-12 text-purple-500"/> :
+                        <Shield className="w-12 h-12 text-blue-500"/>}
                     </div>
                     <div className="w-full space-y-3">
                         <button onClick={() => spin(1)} disabled={userPoints < 10 || spinning} className="w-full bg-yellow-600 hover:bg-yellow-500 disabled:opacity-50 text-black font-black py-3 rounded-xl flex justify-between px-4">
@@ -4211,6 +4285,7 @@
           const getList = () => {
             if (tab === 'title') return { pool: TITLES_POOL, userInv: userData.inventory.titles, current: userData.equipped.title };
             if (tab === 'weapon') return { pool: WEAPONS_POOL, userInv: userData.inventory.weapons, current: userData.equipped.weapon };
+            if (tab === 'race') return { pool: RACES_POOL, userInv: userData.inventory.races, current: userData.equipped.race };
             return { pool: ARMORS_POOL, userInv: userData.inventory.armors, current: userData.equipped.armor };
           };
 
@@ -4224,10 +4299,11 @@
                   <h2 className="text-xl font-bold text-white flex items-center gap-2"><Backpack /> 冒險背包</h2>
                   <button onClick={onClose}><XCircle className="text-neutral-500" /></button>
                 </div>
-                <div className="flex p-2 gap-2 bg-neutral-950">
-                  <button onClick={() => setTab('weapon')} className={`flex-1 py-2 rounded-lg text-sm font-bold ${tab === 'weapon' ? 'bg-red-900/50 text-red-200 border border-red-800' : 'text-neutral-500'}`}>武器</button>
-                  <button onClick={() => setTab('armor')} className={`flex-1 py-2 rounded-lg text-sm font-bold ${tab === 'armor' ? 'bg-blue-900/50 text-blue-200 border border-blue-800' : 'text-neutral-500'}`}>防具</button>
-                  <button onClick={() => setTab('title')} className={`flex-1 py-2 rounded-lg text-sm font-bold ${tab === 'title' ? 'bg-yellow-900/50 text-yellow-200 border border-yellow-800' : 'text-neutral-500'}`}>稱號</button>
+                <div className="flex p-2 gap-2 bg-neutral-950 overflow-x-auto">
+                  <button onClick={() => setTab('race')} className={`flex-1 py-2 px-3 whitespace-nowrap rounded-lg text-sm font-bold ${tab === 'race' ? 'bg-purple-900/50 text-purple-200 border border-purple-800' : 'text-neutral-500'}`}>種族</button>
+                  <button onClick={() => setTab('weapon')} className={`flex-1 py-2 px-3 whitespace-nowrap rounded-lg text-sm font-bold ${tab === 'weapon' ? 'bg-red-900/50 text-red-200 border border-red-800' : 'text-neutral-500'}`}>武器</button>
+                  <button onClick={() => setTab('armor')} className={`flex-1 py-2 px-3 whitespace-nowrap rounded-lg text-sm font-bold ${tab === 'armor' ? 'bg-blue-900/50 text-blue-200 border border-blue-800' : 'text-neutral-500'}`}>防具</button>
+                  <button onClick={() => setTab('title')} className={`flex-1 py-2 px-3 whitespace-nowrap rounded-lg text-sm font-bold ${tab === 'title' ? 'bg-yellow-900/50 text-yellow-200 border border-yellow-800' : 'text-neutral-500'}`}>稱號</button>
                 </div>
                 <div className="flex-1 overflow-y-auto p-2 space-y-2">
                   {ownedItems.length === 0 && <div className="text-center text-neutral-600 mt-10">空空如也</div>}
@@ -4257,6 +4333,7 @@
           const myTitle = TITLES_POOL.find(t => t.id === userData.equipped.title);
           const myWeapon = WEAPONS_POOL.find(w => w.id === userData.equipped.weapon);
           const myArmor = ARMORS_POOL.find(a => a.id === userData.equipped.armor);
+          const myRace = RACES_POOL.find(r => r.id === userData.equipped.race);
 
           const getRarityStyle = (item) => {
                 if (!item) return "text-neutral-600";
@@ -4283,10 +4360,14 @@
                        <div className="w-24 h-24 bg-neutral-800 rounded-full mb-3 flex items-center justify-center border-4 border-neutral-700 shadow-inner relative">
                           <Users className="w-12 h-12 text-neutral-400" />
                           {myTitle && <div className="absolute -top-2 -right-2 bg-neutral-900 rounded-full p-1.5 border border-yellow-500 shadow-lg"><myTitle.icon className={`w-5 h-5 ${myTitle.color}`} /></div>}
+                          {myRace && <div className="absolute -bottom-2 -right-2 bg-neutral-900 rounded-full p-1.5 border border-purple-500 shadow-lg"><myRace.icon className={`w-5 h-5 ${myRace.color}`} /></div>}
                        </div>
                        
-                       <div className={`text-2xl font-bold mb-4 ${getRarityStyle(myTitle)}`}>
+                       <div className={`text-2xl font-bold mb-1 ${getRarityStyle(myTitle)}`}>
                           {myTitle ? myTitle.name : "無名小卒"}
+                       </div>
+                       <div className={`text-sm mb-4 font-bold ${myRace ? myRace.color : 'text-neutral-500'}`}>
+                          {myRace ? myRace.name : "未知種族"}
                        </div>
 
                        {/* 裝備展示 (大圖示) */}
@@ -4367,12 +4448,14 @@
                          const title = p?.equipment?.title ? getItem(TITLES_POOL, p.equipment.title) : null;
                          const weapon = p?.equipment?.weapon ? getItem(WEAPONS_POOL, p.equipment.weapon) : null;
                          const armor = p?.equipment?.armor ? getItem(ARMORS_POOL, p.equipment.armor) : null;
+                         const race = p?.equipment?.race ? getItem(RACES_POOL, p.equipment.race) : null;
 
-                         return <div key={i} className="min-h-[200px] border-2 border-dashed border-neutral-700 rounded-xl flex flex-col items-center p-2 bg-neutral-800/50 relative overflow-hidden transition hover:border-neutral-500">
+                         return <div key={i} className="min-h-[220px] border-2 border-dashed border-neutral-700 rounded-xl flex flex-col items-center p-2 bg-neutral-800/50 relative overflow-hidden transition hover:border-neutral-500">
                             {p ? (
                                <>
                                  <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-1 shadow-lg shrink-0 ${p.isAI ? 'bg-red-900 text-red-200' : 'bg-blue-900 text-blue-200'}`}>{p.isAI ? <Bot size={24}/> : <Users size={24}/>}</div>
                                  <div className="font-bold text-sm truncate w-full text-center mb-1">{p.name}</div>
+                                 {race && <div className={`text-[10px] ${race.color} mb-1 flex items-center gap-1 justify-center bg-black/30 px-2 py-0.5 rounded-full`}><race.icon size={10} /> {race.name}</div>}
                                  {title && <div className={`text-[10px] ${title.color === 'text-rainbow' ? 'text-rainbow' : title.color} mb-2 flex items-center gap-1 justify-center bg-black/30 px-2 py-0.5 rounded-full`}><title.icon size={10} /> {title.name}</div>}
                                  
                                  {/* 裝備展示區 (含特效) */}
@@ -4628,18 +4711,20 @@
                   const myW = WEAPONS_POOL.find(w => w.id === userData.equipped.weapon);
                   const myA = ARMORS_POOL.find(a => a.id === userData.equipped.armor);
                   const myT = TITLES_POOL.find(t => t.id === userData.equipped.title);
+                  const myR = RACES_POOL.find(r => r.id === userData.equipped.race);
                   
-                  // 數值計算：基礎值 + 武器 + 稱號
-                  const atk = 10 + (myW?.atk || 0) + (myT?.atk || 0);
-                  // 數值計算：基礎值 + 防具 + 稱號
-                  const maxHp = 100 + (myA?.hp || 0) + (myT?.hp || 0);
+                  // 數值計算：基礎值 + 武器 + 稱號 + 種族
+                  const atk = 10 + (myW?.atk || 0) + (myT?.atk || 0) + (myR?.atk || 0);
+                  // 數值計算：基礎值 + 防具 + 稱號 + 種族
+                  const maxHp = 100 + (myA?.hp || 0) + (myT?.hp || 0) + (myR?.hp || 0);
                   
                   const name = myT ? `[${myT.name}] 玩家` : `玩家`;
 
                   const equipment = {
                       title: userData.equipped.title || null,
                       weapon: userData.equipped.weapon || null,
-                      armor: userData.equipped.armor || null
+                      armor: userData.equipped.armor || null,
+                      race: userData.equipped.race || null
                   };
 
                   if (mode === 'create') {
@@ -4707,8 +4792,14 @@
                   return pool[pool.length-1].id;
               };
 
-              const aiHp = 100 + Math.floor(Math.random() * 50);
-              const aiAtk = 10 + Math.floor(Math.random() * 15);
+              const aiRaceId = getRandomItem(RACES_POOL);
+              const aiRace = RACES_POOL.find(r => r.id === aiRaceId);
+              
+              const baseHp = 100 + Math.floor(Math.random() * 50);
+              const baseAtk = 10 + Math.floor(Math.random() * 15);
+              
+              const aiHp = baseHp + (aiRace?.hp || 0);
+              const aiAtk = baseAtk + (aiRace?.atk || 0);
               
               await updateDoc(getDocRef(ROOM_COLLECTION, roomCode), {
                  [`players.${aiId}`]: {
@@ -4722,7 +4813,8 @@
                     equipment: { 
                         title: getRandomItem(TITLES_POOL), 
                         weapon: getRandomItem(WEAPONS_POOL), 
-                        armor: getRandomItem(ARMORS_POOL) 
+                        armor: getRandomItem(ARMORS_POOL),
+                        race: aiRaceId
                     }
                  }
               });
@@ -4759,7 +4851,12 @@
               const itemsArray = Array.isArray(items) ? items : [items];
               const cost = itemsArray.length * 10;
               const newData = { ...userData, points: userData.points - cost };
-              const category = mode === 'title' ? 'titles' : mode === 'weapon' ? 'weapons' : 'armors';
+              
+              let category = 'titles';
+              if (mode === 'weapon') category = 'weapons';
+              else if (mode === 'armor') category = 'armors';
+              else if (mode === 'race') category = 'races';
+
               itemsArray.forEach(item => {
                   const currentCount = newData.inventory[category][item.id] || 0;
                   newData.inventory[category][item.id] = currentCount + 1;
@@ -4807,5 +4904,3 @@
     </script>
 </body>
 </html>
-
-
