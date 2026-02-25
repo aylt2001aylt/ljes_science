@@ -910,11 +910,9 @@
                     setWrongCombo(newWc);
                     setFeedback({ correct: question.ans, wrong: idx });
                     
-                    // 計算懲罰：答錯第1題扣0，第2題扣1，第3題扣2...
-                    const penalty = newWc - 1;
-                    if (penalty > 0) {
-                        setTimeLeft(t => Math.max(t - penalty, 0));
-                    }
+                    // 計算懲罰：答錯第1題扣1，第2題扣2，第3題扣3...
+                    const penalty = newWc;
+                    setTimeLeft(t => Math.max(t - penalty, 0));
                 }
 
                 setTimeout(() => {
@@ -953,7 +951,7 @@
                              <div className="text-[10px] md:text-xs text-neutral-500 font-bold uppercase tracking-wider">剩餘時間</div>
                              <div className={`text-2xl md:text-3xl font-black font-mono ${timeLeft < 10 ? 'text-red-500 animate-pulse' : 'text-white'}`}>{timeLeft}s</div>
                              {/* 連續答錯扣秒的視覺提示 */}
-                             {feedback && feedback.wrong !== undefined && wrongCombo > 1 && <div className="absolute -top-4 right-0 text-red-500 font-bold text-sm animate-pop">-{wrongCombo - 1}s</div>}
+                             {feedback && feedback.wrong !== undefined && wrongCombo > 0 && <div className="absolute -top-4 right-0 text-red-500 font-bold text-sm animate-pop">-{wrongCombo}s</div>}
                         </div>
                         <div className="w-px h-8 md:h-10 bg-neutral-700"></div>
                         <div className="text-center relative">
