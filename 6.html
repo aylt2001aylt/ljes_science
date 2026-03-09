@@ -1616,7 +1616,7 @@
                          const armor = p?.equipment?.armor ? getItem(ARMORS_POOL, p.equipment.armor) : null;
                          const race = p?.equipment?.race ? getItem(RACES_POOL, p.equipment.race) : null;
                          
-                         const RaceIcon = race ? race.icon : (p.isAI ? Bot : Users);
+                         const RaceIcon = race ? race.icon : (p?.isAI ? Bot : Users);
 
                          return <div key={i} className="min-h-[180px] border-2 border-dashed border-neutral-700 rounded-xl flex flex-col items-center p-2 bg-neutral-800/50 relative overflow-hidden transition hover:border-neutral-500">
                             {p ? (
@@ -1659,7 +1659,7 @@
            const opponents = Object.values(players).filter(p => p.uid !== myUid);
            const getItem = (pool, id) => pool.find(i => i.id === id);
 
-           const MyRaceIcon = me?.equipment?.race ? getItem(RACES_POOL, me.equipment.race).icon : (me.isAI ? Bot : Users);
+           const MyRaceIcon = me?.equipment?.race ? getItem(RACES_POOL, me.equipment.race).icon : (me?.isAI ? Bot : Users);
 
            if (!me || me.status === 'dead') return (
               <div className="fixed inset-0 bg-neutral-950 flex flex-col items-center justify-center text-white z-50">
@@ -1677,7 +1677,7 @@
                  <div className="relative z-10 flex-none p-2 bg-neutral-900/60 border-b border-white/10 flex justify-center gap-2 overflow-x-auto min-h-[120px]">
                     {opponents.map(op => {
                        const opRace = op?.equipment?.race ? getItem(RACES_POOL, op.equipment.race) : null;
-                       const OpRaceIcon = opRace ? opRace.icon : (op.isAI ? Bot : Users);
+                       const OpRaceIcon = opRace ? opRace.icon : (op?.isAI ? Bot : Users);
                        
                        return (
                            <button key={op.uid} disabled={!targetMode || op.status === 'dead'} onClick={() => targetMode && onAttack(op.uid)}
@@ -2103,4 +2103,3 @@
     </script>
 </body>
 </html>
-
