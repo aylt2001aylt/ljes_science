@@ -1155,9 +1155,14 @@
                   const myR = RACES_POOL.find(r => r.id === userData.equipped.race);
                   
                   // 限制檢查: 必須同時裝備高級(機率<=3)以上的武器和防具
-                  const isHighGrade = (item) => item && item.prob <= 3;
-                  if (!isHighGrade(myW) || !isHighGrade(myA)) {
-                      alert("⚠️ 戰場資格不足！\n必須裝備「高級」(機率3%以下) 等級以上的「武器」與「防具」才可進入大亂鬥。");
+                  const isHighGrade = (item) => item && Number(item.prob) <= 3;
+                  const wPass = isHighGrade(myW);
+                  const aPass = isHighGrade(myA);
+
+                  if (!wPass || !aPass) {
+                      const wMsg = myW ? `${myW.name} (機率${myW.prob}%) - ${wPass ? '✅符合' : '❌不符'}` : "未裝備 - ❌不符";
+                      const aMsg = myA ? `${myA.name} (機率${myA.prob}%) - ${aPass ? '✅符合' : '❌不符'}` : "未裝備 - ❌不符";
+                      alert(`⚠️ 戰場資格不足！\n必須【同時】裝備紫色「高級」(機率3%以下) 等級以上的「武器」與「防具」。\n\n您的裝備狀態：\n⚔️ 武器: ${wMsg}\n🛡️ 防具: ${aMsg}`);
                       return;
                   }
 
