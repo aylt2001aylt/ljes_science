@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>洛津大亂鬥 v3.6 (種族頭像版)</title>
+    <title>洛津大亂鬥</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -919,12 +919,13 @@
             </div>
         );
 
-        const QuestionCard = ({ question, onAnswer, feedback, disabled }) => {
+        const QuestionCard = ({ question, onAnswer, feedback, disabled, isBonus }) => {
             if (!question) return null;
             return (
                 <div className="w-full max-w-2xl mx-auto animate-slide-up flex flex-col h-full justify-center">
-                    <div className="bg-neutral-800/80 backdrop-blur-md rounded-3xl p-6 md:p-8 border border-neutral-700 shadow-2xl mb-4 relative overflow-hidden flex-shrink-0">
-                        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 via-pink-500 to-yellow-500"></div>
+                    <div className={`bg-neutral-800/80 backdrop-blur-md rounded-3xl p-6 md:p-8 border ${isBonus ? 'border-yellow-400 shadow-[0_0_20px_rgba(250,204,21,0.4)] scale-[1.02] transition-transform duration-300' : 'border-neutral-700 shadow-2xl'} mb-4 relative overflow-hidden flex-shrink-0`}>
+                        <div className={`absolute top-0 left-0 w-full h-1 ${isBonus ? 'bg-gradient-to-r from-yellow-300 via-yellow-500 to-yellow-600 animate-pulse' : 'bg-gradient-to-r from-purple-500 via-pink-500 to-yellow-500'}`}></div>
+                        {isBonus && <div className="absolute top-2 right-2 md:top-4 md:right-4 bg-gradient-to-r from-yellow-600 to-orange-500 text-white text-[10px] md:text-xs font-black px-3 py-1 rounded-full animate-bounce shadow-lg flex items-center gap-1"><Zap size={12}/> BONUS 題</div>}
                         <h3 className="text-lg md:text-2xl font-bold leading-relaxed text-white text-center drop-shadow-md">
                             {question.q}
                         </h3>
@@ -966,11 +967,16 @@
             const [question, setQuestion] = useState(getRandomQuestion());
             const [score, setScore] = useState(0);
             const [combo, setCombo] = useState(0);
-            const [wrongCombo, setWrongCombo] = useState(0); // 新增：追蹤連續答錯次數
+            const [wrongCombo, setWrongCombo] = useState(0); // 追蹤連續答錯次數
+            const [questionCount, setQuestionCount] = useState(1);
+            const [nextBonusAt, setNextBonusAt] = useState(() => Math.floor(Math.random() * 6) + 10); // 10~15
+            const [bonusPoints, setBonusPoints] = useState(0);
             const [timeLeft, setTimeLeft] = useState(60);
             const [feedback, setFeedback] = useState(null);
             const [gameStatus, setGameStatus] = useState('playing'); 
             const timerRef = useRef(null);
+
+            const isBonus = questionCount === nextBonusAt;
 
             useEffect(() => {
                 timerRef.current = setInterval(() => {
@@ -993,7 +999,13 @@
                     setCombo(c => c + 1);
                     setWrongCombo(0); // 答對時，連續答錯歸零
                     setFeedback({ correct: question.ans });
-                    setTimeLeft(t => Math.min(t + 2, 60)); 
+                    
+                    if (isBonus) {
+                        setTimeLeft(t => Math.min(t + 5, 60)); // BONUS 答對加5秒
+                        setBonusPoints(bp => bp + 5);          // 直接獲得5分積分
+                    } else {
+                        setTimeLeft(t => Math.min(t + 2, 60)); 
+                    }
                 } else {
                     setCombo(0);
                     const newWc = wrongCombo + 1;
@@ -1005,16 +1017,22 @@
                     setTimeLeft(t => Math.max(t - penalty, 0));
                 }
 
+                if (isBonus) {
+                    // 重新計算下一次 BONUS 題數 (目前題數往後推 10~15 題)
+                    setNextBonusAt(questionCount + Math.floor(Math.random() * 6) + 10);
+                }
+
                 setTimeout(() => {
                     if (timeLeft > 0) {
                         setFeedback(null);
                         setQuestion(getRandomQuestion());
+                        setQuestionCount(c => c + 1);
                     }
                 }, 1000);
             };
 
             const handleFinish = () => {
-                let earned = Math.max(0, score - 500);
+                let earned = Math.max(0, score - 500) + bonusPoints;
                 onAddPoints(earned);
                 onClose();
             };
@@ -1040,14 +1058,21 @@
                         <div className="text-center relative">
                              <div className="text-[10px] md:text-xs text-neutral-500 font-bold uppercase tracking-wider">剩餘時間</div>
                              <div className={`text-2xl md:text-3xl font-black font-mono ${timeLeft < 10 ? 'text-red-500 animate-pulse' : 'text-white'}`}>{timeLeft}s</div>
-                             {/* 連續答錯扣秒的視覺提示 */}
+                             {/* 扣秒與加秒的視覺提示 */}
                              {feedback && feedback.wrong !== undefined && wrongCombo > 0 && <div className="absolute -top-4 right-0 text-red-500 font-bold text-sm animate-pop">-{wrongCombo}s</div>}
+                             {feedback && feedback.wrong === undefined && isBonus && <div className="absolute -top-4 right-0 text-green-400 font-bold text-sm animate-pop">+5s</div>}
                         </div>
                         <div className="w-px h-8 md:h-10 bg-neutral-700"></div>
                         <div className="text-center relative">
                              <div className="text-[10px] md:text-xs text-neutral-500 font-bold uppercase tracking-wider">本次得分</div>
                              <div className="text-2xl md:text-3xl font-black text-yellow-400 font-mono">{score}</div>
-                             {feedback && feedback.wrong === undefined && <div className="absolute -top-4 right-0 text-yellow-300 font-bold text-sm animate-pop">+PTS</div>}
+                             {feedback && feedback.wrong === undefined && !isBonus && <div className="absolute -top-4 right-0 text-yellow-300 font-bold text-sm animate-pop">+PTS</div>}
+                             {feedback && feedback.wrong === undefined && isBonus && (
+                                 <div className="absolute -top-6 right-0 flex flex-col items-center animate-pop">
+                                     <span className="text-yellow-300 font-bold text-sm">+PTS</span>
+                                     <span className="text-purple-300 font-bold text-xs whitespace-nowrap">+5 積分</span>
+                                 </div>
+                             )}
                         </div>
                         <div className="w-px h-8 md:h-10 bg-neutral-700"></div>
                         <div className="text-center">
@@ -1065,6 +1090,7 @@
                                         onAnswer={handleAnswer} 
                                         feedback={feedback} 
                                         disabled={!!feedback}
+                                        isBonus={isBonus}
                                     />
                                 </div>
                                 <div className="flex justify-center mt-4 mb-2 flex-shrink-0">
@@ -1084,14 +1110,22 @@
                                 
                                 <div className="bg-neutral-800 rounded-xl p-4 mb-6 border border-neutral-700">
                                     <div className="flex justify-between items-center mb-2 text-sm text-neutral-400">
-                                        <span>獲得積分 (分數-500)</span>
+                                        <span>分數積分 (分數-500)</span>
                                         <span className="text-white font-bold text-lg">+{Math.max(0, score-500)}</span>
                                     </div>
-                                    {score <= 500 && (
-                                        <div className="text-xs text-red-400 bg-red-900/20 px-2 py-1 rounded">
-                                            未達 500 分門檻，無法獲得積分
+                                    <div className="flex justify-between items-center mb-2 text-sm text-neutral-400">
+                                        <span className="text-purple-300 font-bold flex items-center gap-1"><Zap size={14}/> BONUS 積分</span>
+                                        <span className="text-purple-300 font-bold text-lg">+{bonusPoints}</span>
+                                    </div>
+                                    {score <= 500 && bonusPoints === 0 && (
+                                        <div className="text-xs text-red-400 bg-red-900/20 px-2 py-1 rounded mt-2">
+                                            未達 500 分門檻，且無額外加成
                                         </div>
                                     )}
+                                    <div className="flex justify-between items-center mt-3 pt-3 border-t border-neutral-700">
+                                        <span className="font-bold text-white">總獲得積分</span>
+                                        <span className="text-yellow-500 font-black text-2xl">+{Math.max(0, score-500) + bonusPoints}</span>
+                                    </div>
                                 </div>
 
                                 <button onClick={handleFinish} className="w-full bg-yellow-600 hover:bg-yellow-500 text-black font-black py-4 rounded-xl text-xl shadow-lg transition transform hover:scale-105">
