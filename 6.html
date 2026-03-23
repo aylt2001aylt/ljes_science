@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>洛津大亂鬥</title>
+    <title>洛津大亂鬥 v4.0</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -83,7 +83,7 @@
           Sword, Hammer, Wand2, Crosshair, Shirt, Gem, Ghost, 
           Hexagon, Sparkles, Star, Medal, Crown as CrownIcon, Anchor,
           GraduationCap, Scroll, Map, User, AlertCircle,
-          Leaf, Droplet, PawPrint, Dna, Cloud, LogOut
+          Leaf, Droplet, PawPrint, Dna, Cloud, LogOut, Heart, Bug
         } from 'lucide-react';
 
         // --- 設定與常數 ---
@@ -295,6 +295,30 @@
           { id: "a18", name: "舊襯衫", hp: 5, color: "text-neutral-400", prob: 8, icon: Shirt },
           { id: "a19", name: "破布", hp: 3, color: "text-neutral-500", prob: 15, icon: Ghost },
           { id: "a20", name: "國王的新衣", hp: 0, color: "text-neutral-600", prob: 23.99, icon: Ghost }
+        ];
+
+        // 20個隨機BOSS資料 (包含專屬圖示與顏色)
+        const BOSS_DATA = [
+          { name: "【深淵魔神】", icon: Skull, color: "text-purple-600" },
+          { name: "【毀滅巨龍】", icon: Flame, color: "text-red-600" },
+          { name: "【暗黑邪王】", icon: Ghost, color: "text-indigo-500" },
+          { name: "【末日機甲】", icon: Bot, color: "text-blue-500" },
+          { name: "【虛空領主】", icon: IconVoid, color: "text-fuchsia-600" },
+          { name: "【混沌巨獸】", icon: Hexagon, color: "text-amber-600" },
+          { name: "【遠古巫妖】", icon: Wand2, color: "text-emerald-500" },
+          { name: "【血月女王】", icon: CrownIcon, color: "text-rose-600" },
+          { name: "【骸骨大將軍】", icon: Skull, color: "text-gray-300" },
+          { name: "【星碎吞噬者】", icon: Sparkles, color: "text-yellow-300" },
+          { name: "【極寒冰魂】", icon: Cloud, color: "text-cyan-300" },
+          { name: "【煉獄炎魔】", icon: Flame, color: "text-orange-500" },
+          { name: "【雷霆巨像】", icon: Zap, color: "text-yellow-400" },
+          { name: "【噩夢幽影】", icon: Ghost, color: "text-violet-500" },
+          { name: "【劇毒魔蛛】", icon: Bug, color: "text-green-500" },
+          { name: "【大地裂顱者】", icon: Hammer, color: "text-amber-800" },
+          { name: "【時空篡改者】", icon: Anchor, color: "text-blue-400" },
+          { name: "【墮落天使】", icon: Cloud, color: "text-neutral-400" },
+          { name: "【深海暴君】", icon: Droplet, color: "text-blue-600" },
+          { name: "【狂亂巨魔】", icon: Axe, color: "text-red-700" }
         ];
 
         // 題庫 (無變動)
@@ -864,7 +888,7 @@
     "o": ["如果大齒輪逆時針轉動，小齒輪也會逆時針轉動", "如果大齒輪逆時針轉動，小齒輪會順時針轉動", "大齒輪轉一圈，小齒輪轉超過一圈", "大齒輪轉一齒，小齒輪也轉一齒"],
     "a": 0
   }
-];
+        ];
 
         const QUESTIONS = RAW_QUESTIONS.map(item => ({ q: item.q, options: item.o, ans: item.a }));
         const getRandomQuestion = () => QUESTIONS[Math.floor(Math.random() * QUESTIONS.length)];
@@ -1012,9 +1036,9 @@
             const [question, setQuestion] = useState(getRandomQuestion());
             const [score, setScore] = useState(0);
             const [combo, setCombo] = useState(0);
-            const [wrongCombo, setWrongCombo] = useState(0); // 追蹤連續答錯次數
+            const [wrongCombo, setWrongCombo] = useState(0); 
             const [questionCount, setQuestionCount] = useState(1);
-            const [nextBonusAt, setNextBonusAt] = useState(() => Math.floor(Math.random() * 6) + 10); // 10~15
+            const [nextBonusAt, setNextBonusAt] = useState(() => Math.floor(Math.random() * 6) + 10); 
             const [bonusPoints, setBonusPoints] = useState(0);
             const [timeLeft, setTimeLeft] = useState(60);
             const [feedback, setFeedback] = useState(null);
@@ -1042,12 +1066,12 @@
                 if (isCorrect) {
                     setScore(s => s + 10 + Math.min(combo * 2, 20)); 
                     setCombo(c => c + 1);
-                    setWrongCombo(0); // 答對時，連續答錯歸零
+                    setWrongCombo(0); 
                     setFeedback({ correct: question.ans });
                     
                     if (isBonus) {
-                        setTimeLeft(t => Math.min(t + 5, 60)); // BONUS 答對加5秒
-                        setBonusPoints(bp => bp + 5);          // 直接獲得5分積分
+                        setTimeLeft(t => Math.min(t + 5, 60)); 
+                        setBonusPoints(bp => bp + 5);          
                     } else {
                         setTimeLeft(t => Math.min(t + 2, 60)); 
                     }
@@ -1057,13 +1081,11 @@
                     setWrongCombo(newWc);
                     setFeedback({ correct: question.ans, wrong: idx });
                     
-                    // 計算懲罰：答錯第1題扣1，第2題扣2，第3題扣3...
                     const penalty = newWc;
                     setTimeLeft(t => Math.max(t - penalty, 0));
                 }
 
                 if (isBonus) {
-                    // 重新計算下一次 BONUS 題數 (目前題數往後推 10~15 題)
                     setNextBonusAt(questionCount + Math.floor(Math.random() * 6) + 10);
                 }
 
@@ -1103,7 +1125,6 @@
                         <div className="text-center relative">
                              <div className="text-[10px] md:text-xs text-neutral-500 font-bold uppercase tracking-wider">剩餘時間</div>
                              <div className={`text-2xl md:text-3xl font-black font-mono ${timeLeft < 10 ? 'text-red-500 animate-pulse' : 'text-white'}`}>{timeLeft}s</div>
-                             {/* 扣秒與加秒的視覺提示 */}
                              {feedback && feedback.wrong !== undefined && wrongCombo > 0 && <div className="absolute -top-4 right-0 text-red-500 font-bold text-sm animate-pop">-{wrongCombo}s</div>}
                              {feedback && feedback.wrong === undefined && isBonus && <div className="absolute -top-4 right-0 text-green-400 font-bold text-sm animate-pop">+5s</div>}
                         </div>
@@ -1183,7 +1204,6 @@
             );
         };
 
-        // GachaModal (無變動)
         const GachaModal = ({ onClose, onComplete, userPoints }) => {
           const [mode, setMode] = useState(null); 
           const [spinning, setSpinning] = useState(false);
@@ -1415,9 +1435,15 @@
                  </button>
 
                  <div className="space-y-3 pt-4 border-t border-neutral-800 w-full">
-                    <button onClick={() => onStart('create')} className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90 text-white font-black py-4 rounded-2xl shadow-lg text-xl flex items-center justify-center gap-3 transition transform active:scale-95">
-                       <Flame className="w-6 h-6 animate-pulse" /> 建立大亂鬥戰場
-                    </button>
+                    {/* 分割戰場按鈕 */}
+                    <div className="flex gap-2">
+                       <button onClick={() => onStart('create_br')} className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90 text-white font-black py-4 rounded-2xl shadow-lg text-sm flex items-center justify-center gap-2 transition transform active:scale-95">
+                          <Flame className="w-5 h-5 animate-pulse" /> 建大亂鬥
+                       </button>
+                       <button onClick={() => onStart('create_boss')} className="flex-1 bg-gradient-to-r from-red-700 to-red-900 hover:opacity-90 text-white font-black py-4 rounded-2xl shadow-lg text-sm flex items-center justify-center gap-2 transition transform active:scale-95">
+                          <Skull className="w-5 h-5 animate-pulse" /> 建BOSS戰
+                       </button>
+                    </div>
                     <div className="flex gap-2">
                        <input type="number" id="code" placeholder="輸入戰場代碼" className="flex-1 bg-neutral-900 border border-neutral-700 rounded-xl px-4 text-center font-mono text-lg outline-none focus:border-purple-500 transition" />
                        <button onClick={() => onStart('join', document.getElementById('code').value)} className="bg-neutral-800 hover:bg-neutral-700 text-white font-bold px-8 rounded-xl border border-neutral-700">加入</button>
@@ -1430,7 +1456,7 @@
           );
         };
 
-        const LobbyView = ({ roomCode, players, isHost, onStart, onAddAI, onLeave }) => {
+        const LobbyView = ({ roomCode, roomType, players, isHost, onStart, onAddAI, onLeave }) => {
            const pList = Object.values(players);
            const getItem = (pool, id) => pool.find(i => i.id === id);
 
@@ -1438,18 +1464,29 @@
                 if (!item) return "text-neutral-600";
                 let base = item.color;
                 if (item.color === 'text-rainbow') return `text-rainbow glow-legendary animate-pulse font-black`;
-                if (item.prob <= 1) return `${base} glow-legendary animate-pulse font-black`;
-                if (item.prob <= 2) return `${base} glow-epic font-bold`;
-                if (item.prob <= 3) return `${base} glow-rare font-bold`;
+                if (item.prob <= 1) return `glow-legendary animate-pulse font-black ${base}`;
+                if (item.prob <= 2) return `glow-epic font-bold ${base}`;
+                if (item.prob <= 3) return `glow-rare font-bold ${base}`;
                 return base;
            };
+
+           const isBossMode = roomType === 'boss';
+           // BOSS戰最多5名玩家，大亂鬥最多4名玩家
+           const capacityArr = isBossMode ? [0,1,2,3,4] : [0,1,2,3];
+           const humanList = pList.filter(p => !p.isBoss);
+           const bossInfo = pList.find(p => p.isBoss);
+           
+           const getBossData = (name) => BOSS_DATA.find(b => b.name === name) || { icon: IconVoid, color: "text-red-500" };
+           const activeBossData = bossInfo ? getBossData(bossInfo.name) : null;
 
            return (
              <div className="fixed inset-0 bg-neutral-950 text-white flex flex-col items-center p-6 bg-[url('https://images.unsplash.com/photo-1614728263952-84ea256f9679?q=80&w=2808&auto=format&fit=crop')] bg-cover bg-center h-[100dvh] overflow-y-auto">
                 <div className="absolute inset-0 bg-black/80 backdrop-blur-sm fixed"></div>
                 <div className="glass-panel p-6 rounded-3xl w-full max-w-4xl relative animate-slide-up flex flex-col my-auto max-h-full overflow-y-auto">
                    <div className="flex justify-between items-center mb-4">
-                        <h2 className="text-2xl md:text-3xl font-black text-purple-400 tracking-wider">等待大廳</h2>
+                        <h2 className={`text-2xl md:text-3xl font-black tracking-wider ${isBossMode ? 'text-red-500' : 'text-purple-400'}`}>
+                           {isBossMode ? 'BOSS戰 等待大廳' : '等待大廳'}
+                        </h2>
                         <button onClick={onLeave} className="text-neutral-500 hover:text-white bg-neutral-900/50 px-4 py-2 rounded-lg text-sm">離開</button>
                    </div>
                    
@@ -1457,9 +1494,18 @@
                         <span className="bg-neutral-900/50 border border-neutral-700 px-6 py-2 rounded-lg font-mono text-xl md:text-2xl tracking-[0.2em] shadow-inner">{roomCode}</span>
                    </div>
                    
-                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 mb-8">
-                      {[0,1,2,3].map(i => {
-                         const p = pList[i];
+                   {/* BOSS 專屬展示區塊 */}
+                   {isBossMode && bossInfo && activeBossData && (
+                       <div className="w-full mb-6 border-2 border-red-900 bg-red-950/50 rounded-2xl p-4 flex flex-col items-center shadow-[0_0_20px_rgba(220,38,38,0.3)]">
+                           <activeBossData.icon size={48} className={`${activeBossData.color} animate-pulse mb-2`} style={{ filter: 'drop-shadow(0 0 10px currentColor)' }} />
+                           <div className={`text-2xl font-black ${activeBossData.color} mb-1 tracking-widest`} style={{ filter: 'drop-shadow(0 0 5px currentColor)' }}>{bossInfo.name}</div>
+                           <div className="text-sm text-red-300 font-mono bg-black/50 px-4 py-1 rounded-full">HP: {bossInfo.maxHp} / ATK: {bossInfo.atk}</div>
+                       </div>
+                   )}
+
+                   <div className={`grid grid-cols-1 sm:grid-cols-2 gap-3 mb-8 ${isBossMode ? 'md:grid-cols-5' : 'md:grid-cols-4'}`}>
+                      {capacityArr.map(i => {
+                         const p = humanList[i]; // 只顯示非BOSS玩家
                          const title = p?.equipment?.title ? getItem(TITLES_POOL, p.equipment.title) : null;
                          const weapon = p?.equipment?.weapon ? getItem(WEAPONS_POOL, p.equipment.weapon) : null;
                          const armor = p?.equipment?.armor ? getItem(ARMORS_POOL, p.equipment.armor) : null;
@@ -1494,8 +1540,9 @@
                    </div>
                    {isHost ? (
                       <div className="space-y-3 mt-auto">
-                         <button onClick={onAddAI} disabled={pList.length>=4} className="w-full glass-btn py-3 rounded-xl font-bold hover:bg-white/10 disabled:opacity-50">加入 AI 機器人</button>
-                         <button onClick={onStart} disabled={pList.length<2} className="w-full bg-green-600 py-3 rounded-xl font-black hover:bg-green-500 disabled:grayscale text-lg shadow-lg shadow-green-900/50">開始戰鬥</button>
+                         {/* BOSS戰不可加入AI */}
+                         {!isBossMode && <button onClick={onAddAI} disabled={humanList.length>=4} className="w-full glass-btn py-3 rounded-xl font-bold hover:bg-white/10 disabled:opacity-50">加入 AI 機器人</button>}
+                         <button onClick={onStart} disabled={humanList.length<(!isBossMode?2:1)} className="w-full bg-green-600 py-3 rounded-xl font-black hover:bg-green-500 disabled:grayscale text-lg shadow-lg shadow-green-900/50">開始戰鬥</button>
                       </div>
                    ) : <div className="text-center animate-pulse text-neutral-400 mt-auto">等待指揮官開始...</div>}
                 </div>
@@ -1503,18 +1550,23 @@
            );
         };
 
-        const GameView = ({ myUid, players, question, onAnswer, targetMode, onAttack, feedback }) => {
+        const GameView = ({ roomType, myUid, players, question, onAnswer, targetMode, onAttack, onHeal, feedback }) => {
            const me = players[myUid];
-           const opponents = Object.values(players).filter(p => p.uid !== myUid);
-           const getItem = (pool, id) => pool.find(i => i.id === id);
+           // BOSS戰模式：對手列表中只有BOSS；大亂鬥模式：對手列表中不包含自己
+           const opponents = Object.values(players).filter(p => p.uid !== myUid && (roomType === 'boss' ? p.isBoss : true));
+           const isBossMode = roomType === 'boss';
 
+           const getItem = (pool, id) => pool.find(i => i.id === id);
+           const getBossData = (name) => BOSS_DATA.find(b => b.name === name) || { icon: IconVoid, color: "text-red-500" };
            const MyRaceIcon = me?.equipment?.race ? getItem(RACES_POOL, me.equipment.race).icon : (me?.isAI ? Bot : Users);
 
+           // 陣亡畫面，如果是BOSS戰則等待結果
            if (!me || me.status === 'dead') return (
               <div className="fixed inset-0 bg-neutral-950 flex flex-col items-center justify-center text-white z-50">
                  <Skull className="w-24 h-24 text-neutral-700 mb-4 animate-bounce" />
                  <h2 className="text-4xl font-black text-red-600 mb-2">已陣亡</h2>
-                 <p className="text-neutral-500">勝敗乃兵家常事，大俠請重新來過</p>
+                 <p className="text-neutral-500 mb-4">{isBossMode ? '請為隊友祈禱，等待戰鬥結束...' : '勝敗乃兵家常事，大俠請重新來過'}</p>
+                 {isBossMode && <div className="animate-pulse flex items-center gap-2 text-yellow-500"><Swords size={16}/> 隊友奮戰中...</div>}
               </div>
            );
 
@@ -1526,20 +1578,21 @@
                  <div className="relative z-10 flex-none p-2 bg-neutral-900/60 border-b border-white/10 flex justify-center gap-2 overflow-x-auto min-h-[120px]">
                     {opponents.map(op => {
                        const opRace = op?.equipment?.race ? getItem(RACES_POOL, op.equipment.race) : null;
-                       const OpRaceIcon = opRace ? opRace.icon : (op?.isAI ? Bot : Users);
+                       const bossData = op.isBoss ? getBossData(op.name) : null;
+                       const OpRaceIcon = op.isBoss ? bossData.icon : (opRace ? opRace.icon : (op?.isAI ? Bot : Users));
                        
                        return (
-                           <button key={op.uid} disabled={!targetMode || op.status === 'dead'} onClick={() => targetMode && onAttack(op.uid)}
-                              className={`relative p-2 rounded-xl border transition-all w-24 md:w-32 flex flex-col items-center flex-shrink-0 ${targetMode && op.status !== 'dead' ? 'border-red-500 bg-red-900/30 scale-105 shadow-[0_0_20px_rgba(220,38,38,0.5)] animate-pulse cursor-crosshair' : 'border-neutral-700 bg-black/40'} ${op.status === 'dead' ? 'opacity-30 grayscale' : ''}`}>
-                              <div className="text-xs font-bold truncate w-full text-center mb-1 text-neutral-300">{op.name}</div>
+                           <button key={op.uid} disabled={!targetMode || op.status === 'dead' || (isBossMode && !op.isBoss)} onClick={() => targetMode && onAttack(op.uid)}
+                              className={`relative p-2 rounded-xl border transition-all ${op.isBoss ? 'w-32 md:w-48 bg-red-950/60 border-red-800' : 'w-24 md:w-32 bg-black/40 border-neutral-700'} flex flex-col items-center flex-shrink-0 ${targetMode && op.status !== 'dead' && (!isBossMode || op.isBoss) ? 'border-red-500 scale-105 shadow-[0_0_20px_rgba(220,38,38,0.5)] animate-pulse cursor-crosshair' : ''} ${op.status === 'dead' ? 'opacity-30 grayscale' : ''}`}>
+                              <div className={`text-xs font-bold truncate w-full text-center mb-1 ${op.isBoss ? `${bossData.color} text-sm` : 'text-neutral-300'}`} style={op.isBoss ? {filter: 'drop-shadow(0 0 5px currentColor)'} : {}}>{op.name}</div>
                               <div className="w-full h-1.5 bg-neutral-800 rounded-full overflow-hidden mb-1 ring-1 ring-white/10">
                                  <div className="h-full bg-gradient-to-r from-red-600 to-red-400 hp-transition" style={{width: `${(op.hp / op.maxHp) * 100}%`}}></div>
                               </div>
                               <div className="text-[10px] text-neutral-400 font-mono mb-1">{op.hp}/{op.maxHp}</div>
-                              <div className="flex gap-1 justify-center opacity-60 scale-75">
-                                  <OpRaceIcon size={24} className={opRace ? opRace.color : 'text-neutral-400'} />
+                              <div className={`flex gap-1 justify-center ${op.isBoss ? bossData.color : 'opacity-60 scale-75'}`} style={op.isBoss ? {filter: 'drop-shadow(0 0 8px currentColor)'} : {}}>
+                                  <OpRaceIcon size={op.isBoss ? 32 : 24} className={!op.isBoss && opRace ? opRace.color : ''} />
                               </div>
-                              {targetMode && op.status !== 'dead' && <div className="absolute -bottom-3 bg-red-600 text-white text-[10px] px-2 py-0.5 rounded-full font-bold shadow-lg animate-bounce z-20">點擊攻擊</div>}
+                              {targetMode && op.status !== 'dead' && (!isBossMode || op.isBoss) && <div className="absolute -bottom-3 bg-red-600 text-white text-[10px] px-2 py-0.5 rounded-full font-bold shadow-lg animate-bounce z-20">點擊攻擊</div>}
                            </button>
                        )
                     })}
@@ -1551,8 +1604,18 @@
                         {targetMode ? (
                             <div className="text-center animate-pop py-10">
                                 <Swords className="w-24 h-24 text-red-500 mx-auto mb-4 animate-pulse" />
-                                <h2 className="text-3xl font-black text-white mb-2">攻擊機會！</h2>
-                                <p className="text-neutral-400">請點擊上方的一位對手進行攻擊</p>
+                                <h2 className="text-3xl font-black text-white mb-2">行動機會！</h2>
+                                <p className="text-neutral-400 mb-6">請點擊上方目標進行攻擊{isBossMode ? '，或選擇治癒自己' : ''}</p>
+                                
+                                {/* BOSS 戰專屬：補血按鈕 */}
+                                {isBossMode && (
+                                    <button 
+                                        onClick={onHeal}
+                                        className="bg-green-600 hover:bg-green-500 text-white font-bold py-3 px-8 rounded-full shadow-lg shadow-green-900/50 flex items-center justify-center gap-2 mx-auto transition transform active:scale-95"
+                                    >
+                                        <Heart size={20} className="animate-pulse" /> 治癒自己 (+{me.atk * 2} HP)
+                                    </button>
+                                )}
                             </div>
                         ) : (
                             <QuestionCard 
@@ -1636,6 +1699,7 @@
               return () => unsub();
            }, [roomCode, user, view]);
 
+           // 遊戲主迴圈 (AI 與 BOSS 行為)
            useEffect(() => {
               if (view !== 'game' || !roomData || roomData.host !== user?.uid || roomData.status !== 'playing') {
                  if (aiInterval.current) { clearInterval(aiInterval.current); aiInterval.current = null; }
@@ -1649,85 +1713,148 @@
                     if (rd.status !== 'playing') return;
 
                     const players = rd.players;
-                    const ais = Object.values(players).filter(p => p.isAI && p.status === 'alive');
-                    if (ais.length === 0) return;
-
                     const now = Date.now();
                     let updates = {};
                     let hasUpdate = false;
 
-                    ais.forEach(ai => {
-                       if (!aiState.current[ai.uid]) aiState.current[ai.uid] = now + 2000 + Math.random() * 3000;
-                       
-                       if (now >= aiState.current[ai.uid]) {
-                          const willAttack = Math.random() < 0.5; 
-                          if (willAttack) {
-                             const targets = Object.values(players).filter(p => p.uid !== ai.uid && p.status === 'alive');
-                             if (targets.length > 0) {
-                                const humans = targets.filter(p => !p.isAI);
-                                const bots = targets.filter(p => p.isAI);
-                                let target = null;
-                                const preferHuman = Math.random() < 0.7;
-                                if (preferHuman) {
-                                   if(humans.length > 0) target = humans[Math.floor(Math.random()*humans.length)];
-                                   else if(bots.length > 0) target = bots[Math.floor(Math.random()*bots.length)];
-                                } else {
-                                   if(bots.length > 0) target = bots[Math.floor(Math.random()*bots.length)];
-                                   else if(humans.length > 0) target = humans[Math.floor(Math.random()*humans.length)];
+                    if (rd.type === 'boss') {
+                        // BOSS 攻擊邏輯
+                        const boss = players['BOSS_01'];
+                        if (boss && boss.status === 'alive') {
+                            if (!aiState.current.bossNextAttack) {
+                                aiState.current.bossNextAttack = now + 1000 + Math.random() * 2000;
+                            }
+                            if (now >= aiState.current.bossNextAttack) {
+                                const aliveHumans = Object.values(players).filter(p => !p.isBoss && p.status === 'alive');
+                                if (aliveHumans.length > 0) {
+                                    const target = aliveHumans[Math.floor(Math.random() * aliveHumans.length)];
+                                    // 70% 命中率
+                                    if (Math.random() < 0.7) {
+                                        const curHp = updates[`players.${target.uid}.hp`] ?? target.hp;
+                                        const newHp = Math.max(0, curHp - boss.atk);
+                                        updates[`players.${target.uid}.hp`] = newHp;
+                                        if (newHp <= 0) {
+                                            updates[`players.${target.uid}.status`] = 'dead';
+                                            updates[`players.${target.uid}.deathTime`] = now;
+                                        }
+                                        hasUpdate = true;
+                                    }
                                 }
+                                aiState.current.bossNextAttack = now + 1000 + Math.random() * 2000;
+                            }
+                        }
+                    } else {
+                        // 一般大亂鬥 AI 攻擊邏輯
+                        const ais = Object.values(players).filter(p => p.isAI && p.status === 'alive');
+                        ais.forEach(ai => {
+                           if (!aiState.current[ai.uid]) aiState.current[ai.uid] = now + 2000 + Math.random() * 3000;
+                           
+                           if (now >= aiState.current[ai.uid]) {
+                              const willAttack = Math.random() < 0.5; 
+                              if (willAttack) {
+                                 const targets = Object.values(players).filter(p => p.uid !== ai.uid && p.status === 'alive');
+                                 if (targets.length > 0) {
+                                    const humans = targets.filter(p => !p.isAI);
+                                    const bots = targets.filter(p => p.isAI);
+                                    let target = null;
+                                    const preferHuman = Math.random() < 0.7;
+                                    if (preferHuman) {
+                                       if(humans.length > 0) target = humans[Math.floor(Math.random()*humans.length)];
+                                       else if(bots.length > 0) target = bots[Math.floor(Math.random()*bots.length)];
+                                    } else {
+                                       if(bots.length > 0) target = bots[Math.floor(Math.random()*bots.length)];
+                                       else if(humans.length > 0) target = humans[Math.floor(Math.random()*humans.length)];
+                                    }
 
-                                if (target) {
-                                   const curHp = updates[`players.${target.uid}.hp`] ?? target.hp;
-                                   const dmg = ai.atk;
-                                   const newHp = Math.max(0, curHp - dmg);
-                                   updates[`players.${target.uid}.hp`] = newHp;
-                                   if (newHp <= 0) {
-                                      updates[`players.${target.uid}.status`] = 'dead';
-                                      updates[`players.${target.uid}.deathTime`] = now;
-                                   }
-                                   hasUpdate = true;
-                                }
-                             }
-                          }
-                          aiState.current[ai.uid] = now + 10000 + Math.random() * 10000; 
-                       }
-                    });
+                                    if (target) {
+                                       const curHp = updates[`players.${target.uid}.hp`] ?? target.hp;
+                                       const dmg = ai.atk;
+                                       const newHp = Math.max(0, curHp - dmg);
+                                       updates[`players.${target.uid}.hp`] = newHp;
+                                       if (newHp <= 0) {
+                                          updates[`players.${target.uid}.status`] = 'dead';
+                                          updates[`players.${target.uid}.deathTime`] = now;
+                                       }
+                                       hasUpdate = true;
+                                    }
+                                 }
+                              }
+                              aiState.current[ai.uid] = now + 10000 + Math.random() * 10000; 
+                           }
+                        });
+                    }
 
                     if (hasUpdate) await updateDoc(getDocRef(ROOM_COLLECTION, roomCode), updates);
                  }, 1000);
               }
            }, [view, roomCode, user]);
 
+           // 勝負判定邏輯
            useEffect(() => {
-              if (view === 'game' && roomData?.status === 'playing') {
-                 const me = roomData.players[user.uid];
-                 const alive = Object.values(roomData.players).filter(p => p.status === 'alive');
-                 
-                 if (me && me.status === 'dead') {
-                    const rank = alive.length + 1;
-                    const pts = [0, 10, 5, 3, 1][rank] || 1;
-                    const newData = { ...userData, points: userData.points + pts };
-                    setUserData(saveUserData(newData));
-                    alert(`您已陣亡！獲得第 ${rank} 名，積分 +${pts}`);
-                    resetGame();
-                 }
+              if (view === 'game' && roomData) {
+                  const me = roomData.players[user.uid];
+                  const aliveHumans = Object.values(roomData.players).filter(p => !p.isBoss && p.status === 'alive');
+                  const boss = roomData.players['BOSS_01'];
+                  const totalHumans = Object.values(roomData.players).filter(p => !p.isBoss).length;
 
-                 if (roomData.host === user.uid && alive.length <= 1) {
-                    if (alive.length === 1) {
-                       updateDoc(getDocRef(ROOM_COLLECTION, roomCode), { status: 'finished' });
-                    } else if (alive.length === 0) {
-                       updateDoc(getDocRef(ROOM_COLLECTION, roomCode), { status: 'finished' });
-                    }
-                 }
-              }
-              if (view === 'game' && roomData?.status === 'finished') {
-                 const me = roomData.players[user.uid];
-                 if (me && me.status === 'alive') {
-                    const newData = { ...userData, points: userData.points + 10 };
-                    setUserData(saveUserData(newData));
-                    alert("恭喜獲得冠軍！積分 +10");
-                    resetGame();
-                 }
+                  if (roomData.type === 'boss') {
+                      // BOSS戰 結束條件判斷 (限房主執行)
+                      if (roomData.status === 'playing' && roomData.host === user.uid) {
+                          if (boss && boss.status === 'dead') {
+                              updateDoc(getDocRef(ROOM_COLLECTION, roomCode), { status: 'boss_win' });
+                          } else if (aliveHumans.length === 0) {
+                              updateDoc(getDocRef(ROOM_COLLECTION, roomCode), { status: 'boss_lose' });
+                          }
+                      }
+
+                      // 玩家陣亡提示 (不退出房間，當觀眾)
+                      if (roomData.status === 'playing' && me && me.status === 'dead' && !aiState.current.notifiedDeath) {
+                          aiState.current.notifiedDeath = true;
+                          alert("您已陣亡！請等待隊友擊敗 BOSS...");
+                      }
+
+                      // BOSS戰 結算
+                      if (roomData.status === 'boss_win' && me && !aiState.current.handledEnd) {
+                          aiState.current.handledEnd = true;
+                          const reward = Math.floor(200 / totalHumans);
+                          const newData = { ...userData, points: userData.points + reward };
+                          setUserData(saveUserData(newData));
+                          alert(`🎉 擊敗了深淵魔神！\n所有參與者平分獎勵，您獲得了 ${reward} 積分！`);
+                          resetGame();
+                      } else if (roomData.status === 'boss_lose' && me && !aiState.current.handledEnd) {
+                          aiState.current.handledEnd = true;
+                          alert(`💀 挑戰失敗！全軍覆沒...`);
+                          resetGame();
+                      }
+
+                  } else {
+                      // 原本的 大亂鬥 結束與陣亡邏輯
+                      if (roomData.status === 'playing') {
+                         if (me && me.status === 'dead') {
+                            const rank = aliveHumans.length + 1; // 包含AI的存活數
+                            const pts = [0, 10, 5, 3, 1][rank] || 1;
+                            const newData = { ...userData, points: userData.points + pts };
+                            setUserData(saveUserData(newData));
+                            alert(`您已陣亡！獲得第 ${rank} 名，積分 +${pts}`);
+                            resetGame();
+                         }
+
+                         if (roomData.host === user.uid) {
+                             const totalAlive = Object.values(roomData.players).filter(p => p.status === 'alive').length;
+                             if (totalAlive <= 1) {
+                                 updateDoc(getDocRef(ROOM_COLLECTION, roomCode), { status: 'finished' });
+                             }
+                         }
+                      }
+                      if (roomData.status === 'finished') {
+                         if (me && me.status === 'alive') {
+                            const newData = { ...userData, points: userData.points + 10 };
+                            setUserData(saveUserData(newData));
+                            alert("恭喜獲得冠軍！積分 +10");
+                            resetGame();
+                         }
+                      }
+                  }
               }
            }, [roomData, view]);
 
@@ -1748,23 +1875,38 @@
                   const myT = TITLES_POOL.find(t => t.id === userData.equipped.title);
                   const myR = RACES_POOL.find(r => r.id === userData.equipped.race);
                   
-                  // 限制檢查: 必須同時裝備高級(機率<=3)以上的武器和防具
                   const isHighGrade = (item) => item && Number(item.prob) <= 3;
-                  const wPass = isHighGrade(myW);
-                  const aPass = isHighGrade(myA);
+                  const isBetterThanHighGrade = (item) => item && Number(item.prob) < 3; // 機率小於3(即<=2)
 
-                  if (!wPass || !aPass) {
-                      const wMsg = myW ? `${myW.name} (機率${myW.prob}%) - ${wPass ? '✅符合' : '❌不符'}` : "未裝備 - ❌不符";
-                      const aMsg = myA ? `${myA.name} (機率${myA.prob}%) - ${aPass ? '✅符合' : '❌不符'}` : "未裝備 - ❌不符";
-                      alert(`⚠️ 戰場資格不足！\n必須【同時】裝備紫色「高級」(機率3%以下) 等級以上的「武器」與「防具」。\n\n您的裝備狀態：\n⚔️ 武器: ${wMsg}\n🛡️ 防具: ${aMsg}`);
-                      return;
-                  }
+                  // 確認門檻用的輔助函式
+                  const checkRequirements = (roomType) => {
+                      if (roomType === 'boss') {
+                          const wPass = isBetterThanHighGrade(myW);
+                          const aPass = isBetterThanHighGrade(myA);
+                          const rPass = isBetterThanHighGrade(myR);
+                          if (!wPass || !aPass || !rPass) {
+                              const wMsg = myW ? `${myW.name} (機率${myW.prob}%) - ${wPass ? '✅' : '❌'}` : "未裝備 - ❌";
+                              const aMsg = myA ? `${myA.name} (機率${myA.prob}%) - ${aPass ? '✅' : '❌'}` : "未裝備 - ❌";
+                              const rMsg = myR ? `${myR.name} (機率${myR.prob}%) - ${rPass ? '✅' : '❌'}` : "未裝備 - ❌";
+                              alert(`⚠️ BOSS戰資格不足！\n必須【同時】裝備比「高級」更好(機率小於3%) 的「武器」、「防具」與「種族」。\n\n裝備狀態：\n⚔️ 武器: ${wMsg}\n🛡️ 防具: ${aMsg}\n🧬 種族: ${rMsg}`);
+                              return false;
+                          }
+                      } else {
+                          const wPass = isHighGrade(myW);
+                          const aPass = isHighGrade(myA);
+                          if (!wPass || !aPass) {
+                              const wMsg = myW ? `${myW.name} (機率${myW.prob}%) - ${wPass ? '✅' : '❌'}` : "未裝備 - ❌";
+                              const aMsg = myA ? `${myA.name} (機率${myA.prob}%) - ${aPass ? '✅' : '❌'}` : "未裝備 - ❌";
+                              alert(`⚠️ 戰場資格不足！\n必須【同時】裝備紫色「高級」(機率3%以下) 等級以上的「武器」與「防具」。\n\n裝備狀態：\n⚔️ 武器: ${wMsg}\n🛡️ 防具: ${aMsg}`);
+                              return false;
+                          }
+                      }
+                      return true;
+                  };
 
                   // 數值計算：基礎值 + 武器 + 稱號 + 種族
                   const atk = 10 + (myW?.atk || 0) + (myT?.atk || 0) + (myR?.atk || 0);
-                  // 數值計算：基礎值 + 防具 + 稱號 + 種族
                   const maxHp = 100 + (myA?.hp || 0) + (myT?.hp || 0) + (myR?.hp || 0);
-                  
                   const name = myT ? `[${myT.name}] 玩家` : `玩家`;
 
                   const equipment = {
@@ -1774,61 +1916,98 @@
                       race: userData.equipped.race || null
                   };
 
-                  if (mode === 'create') {
+                  if (mode.startsWith('create')) {
+                     const isBossMode = mode === 'create_boss';
+                     if (!checkRequirements(isBossMode ? 'boss' : 'br')) return;
+
                      const code = Math.floor(100000 + Math.random()*900000).toString();
+                     
+                     let initialPlayers = {
+                         [user.uid]: {
+                             uid: user.uid,
+                             name: name,
+                             hp: maxHp,
+                             maxHp: maxHp,
+                             atk: atk,
+                             status: 'alive',
+                             isHost: true,
+                             isAI: false,
+                             isBoss: false,
+                             equipment: equipment
+                         }
+                     };
+
+                     // 若為 BOSS 戰，直接初始化 BOSS 實體
+                     if (isBossMode) {
+                         const randomBoss = BOSS_DATA[Math.floor(Math.random() * BOSS_DATA.length)];
+                         const randomBossHp = Math.floor(Math.random() * 101) + 950; // 950 ~ 1050
+                         const randomBossAtk = Math.floor(Math.random() * 11) + 95;  // 95 ~ 105
+
+                         initialPlayers['BOSS_01'] = {
+                             uid: 'BOSS_01',
+                             name: randomBoss.name,
+                             hp: randomBossHp,
+                             maxHp: randomBossHp,
+                             atk: randomBossAtk,
+                             status: 'alive',
+                             isHost: false,
+                             isAI: false, // 由專屬的 Boss Loop 處理
+                             isBoss: true,
+                             equipment: { title: 't00', weapon: 'w00', armor: 'a00', race: 'r00' }
+                         };
+                     }
+
                      await setDoc(getDocRef(ROOM_COLLECTION, code), {
                         createdAt: Date.now(),
                         host: user.uid,
                         status: 'waiting',
-                        players: { [user.uid]: {
-                            uid: user.uid,
-                            name: name,
-                            hp: maxHp,
-                            maxHp: maxHp,
-                            atk: atk,
-                            status: 'alive',
-                            isHost: true,
-                            isAI: false,
-                            equipment: equipment
-                        }}
+                        type: isBossMode ? 'boss' : 'br',
+                        players: initialPlayers
                      });
                      setRoomCode(code);
                      setView('lobby');
-                  } else {
+
+                  } else if (mode === 'join') {
                      if(!inputCode) return alert("請輸入代碼");
                      const ref = getDocRef(ROOM_COLLECTION, inputCode);
                      const snap = await getDoc(ref);
                      if (!snap.exists()) return alert("找不到房間");
                      const d = snap.data();
                      if (d.status !== 'waiting') return alert("遊戲已開始");
-                     if (Object.keys(d.players).length >= 4) return alert("客滿");
+                     
+                     const roomType = d.type || 'br';
+                     if (!checkRequirements(roomType)) return;
+
+                     const humansCount = Object.values(d.players).filter(p => !p.isBoss).length;
+                     if (roomType === 'boss' && humansCount >= 5) return alert("BOSS戰已客滿(最多5人)");
+                     if (roomType === 'br' && Object.keys(d.players).length >= 4) return alert("大亂鬥已客滿(最多4人)");
                      
                      await updateDoc(ref, { [`players.${user.uid}`]: {
                         uid: user.uid,
-                        name: name + (Object.keys(d.players).length+1),
+                        name: name + (humansCount + 1),
                         hp: maxHp,
                         maxHp: maxHp,
                         atk: atk,
                         status: 'alive',
                         isHost: false,
                         isAI: false,
+                        isBoss: false,
                         equipment: equipment
                      }});
                      setRoomCode(inputCode);
                      setView('lobby');
                   }
               } catch (e) {
-                  alert("無法建立或加入戰場: " + e.message);
+                  alert("操作失敗: " + e.message);
               }
            };
 
            const handleAddAI = async () => {
               if (!roomCode) return;
-              const aiId = "AI_" + Date.now();
-              const count = Object.keys(roomData.players).length;
-              if (count >= 4) return;
+              const humansCount = Object.values(roomData.players).filter(p => !p.isBoss).length;
+              if (humansCount >= 4) return;
               
-              // AI 隨機裝備
+              const aiId = "AI_" + Date.now();
               const getRandomItem = (pool) => {
                   const r = Math.random() * 100;
                   let s = 0;
@@ -1851,12 +2030,13 @@
               await updateDoc(getDocRef(ROOM_COLLECTION, roomCode), {
                  [`players.${aiId}`]: {
                     uid: aiId,
-                    name: `AI戰士 ${count+1}`,
+                    name: `AI戰士 ${humansCount+1}`,
                     hp: aiHp,
                     maxHp: aiHp,
                     atk: aiAtk,
                     status: 'alive',
                     isAI: true,
+                    isBoss: false,
                     equipment: { 
                         title: getRandomItem(TITLES_POOL), 
                         weapon: getRandomItem(WEAPONS_POOL), 
@@ -1878,6 +2058,16 @@
                  updates[`players.${targetUid}.status`] = 'dead';
                  updates[`players.${targetUid}.deathTime`] = Date.now();
               }
+              await updateDoc(getDocRef(ROOM_COLLECTION, roomCode), updates);
+           };
+
+           const handleHeal = async () => {
+              setTargetMode(false);
+              setMyQuestion(getRandomQuestion());
+              const me = roomData.players[user.uid];
+              const healAmount = me.atk * 2;
+              const newHp = Math.min(me.maxHp, me.hp + healAmount);
+              let updates = { [`players.${user.uid}.hp`]: newHp };
               await updateDoc(getDocRef(ROOM_COLLECTION, roomCode), updates);
            };
 
@@ -1936,8 +2126,8 @@
                         onReset={() => setShowResetConfirm(true)} 
                     />
                  )}
-                 {view === 'lobby' && roomData && <LobbyView roomCode={roomCode} players={roomData.players} isHost={roomData.host === user.uid} onStart={() => updateDoc(getDocRef(ROOM_COLLECTION, roomCode), {status:'playing'})} onAddAI={handleAddAI} onLeave={resetGame} />}
-                 {view === 'game' && roomData && <GameView myUid={user.uid} players={roomData.players} question={myQuestion} onAnswer={handleAnswer} targetMode={targetMode} onAttack={handleAttack} feedback={feedback} />}
+                 {view === 'lobby' && roomData && <LobbyView roomCode={roomCode} roomType={roomData.type || 'br'} players={roomData.players} isHost={roomData.host === user.uid} onStart={() => updateDoc(getDocRef(ROOM_COLLECTION, roomCode), {status:'playing'})} onAddAI={handleAddAI} onLeave={resetGame} />}
+                 {view === 'game' && roomData && <GameView roomType={roomData.type || 'br'} myUid={user.uid} players={roomData.players} question={myQuestion} onAnswer={handleAnswer} targetMode={targetMode} onAttack={handleAttack} onHeal={handleHeal} feedback={feedback} />}
                  
                  {showGacha && <GachaModal userPoints={userData.points} onClose={() => setShowGacha(false)} onComplete={handleGachaComplete} />}
                  {showInv && <InventoryModal userData={userData} onEquip={handleEquip} onClose={() => setShowInv(false)} />}
