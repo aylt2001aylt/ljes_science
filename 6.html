@@ -1893,8 +1893,15 @@
                                 const aliveHumans = Object.values(players).filter(p => !p.isBoss && p.status === 'alive');
                                 if (aliveHumans.length > 0) {
                                     const target = aliveHumans[Math.floor(Math.random() * aliveHumans.length)];
-                                    // 70% 命中率
-                                    if (Math.random() < 0.7) {
+                                    
+                                    // 根據存活玩家人數動態調整命中率
+                                    let hitProb = 0.7;
+                                    if (aliveHumans.length === 2) hitProb = 0.8;
+                                    else if (aliveHumans.length === 3) hitProb = 0.85;
+                                    else if (aliveHumans.length === 4) hitProb = 0.9;
+                                    else if (aliveHumans.length >= 5) hitProb = 1.0;
+
+                                    if (Math.random() < hitProb) {
                                         const curHp = updates[`players.${target.uid}.hp`] ?? target.hp;
                                         const newHp = Math.max(0, curHp - boss.atk);
                                         updates[`players.${target.uid}.hp`] = newHp;
