@@ -4016,10 +4016,40 @@
                       // BOSS戰 結算
                       if (roomData.status === 'boss_win' && me && !aiState.current.handledEnd) {
                           aiState.current.handledEnd = true;
+                          
+                          // 取得 BOSS 專屬掉落 (機率 <= 2 的稀有物品)
+                          const getBossReward = () => {
+                              const allRareItems = [
+                                  ...TITLES_POOL.filter(i => i.prob <= 2).map(i => ({...i, category: 'titles'})),
+                                  ...WEAPONS_POOL.filter(i => i.prob <= 2).map(i => ({...i, category: 'weapons'})),
+                                  ...ARMORS_POOL.filter(i => i.prob <= 2).map(i => ({...i, category: 'armors'})),
+                                  ...RACES_POOL.filter(i => i.prob <= 2).map(i => ({...i, category: 'races'}))
+                              ];
+                              let sum = 0;
+                              // 計算符合條件的總機率
+                              const totalProb = allRareItems.reduce((acc, curr) => acc + curr.prob, 0);
+                              const rand = Math.random() * totalProb;
+                              
+                              let selected = allRareItems[allRareItems.length - 1];
+                              for (let item of allRareItems) {
+                                  sum += item.prob;
+                                  if (rand <= sum) {
+                                      selected = item;
+                                      break;
+                                  }
+                              }
+                              return selected;
+                          };
+
                           const reward = Math.floor(200 / totalHumans);
+                          const rewardItem = getBossReward();
+                          
                           const newData = { ...userData, points: userData.points + reward };
+                          // 將戰利品放入背包
+                          newData.inventory[rewardItem.category][rewardItem.id] = (newData.inventory[rewardItem.category][rewardItem.id] || 0) + 1;
+                          
                           setUserData(saveUserData(newData));
-                          alert(`🎉 擊敗了深淵魔神！\n所有參與者平分獎勵，您獲得了 ${reward} 積分！`);
+                          alert(`🎉 擊敗了深淵魔神！\n所有參與者平分獎勵，您獲得了 ${reward} 積分！\n\n🎁 額外獲得戰利品：${rewardItem.name}`);
                           resetGame();
                       } else if (roomData.status === 'boss_lose' && me && !aiState.current.handledEnd) {
                           aiState.current.handledEnd = true;
